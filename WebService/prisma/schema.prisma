@@ -1,0 +1,252 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Entidades de Configuración y Catálogos
+
+model Ciudad {
+  idCiudad Int      @id @default(autoincrement())
+  nombre   String   @db.VarChar(100)
+  pais     String   @db.VarChar(100)
+  hoteles  Hotel[]
+}
+
+model Hotel {
+  idHotel              Int                    @id @default(autoincrement())
+  nombre               String                 @db.VarChar(100)
+  ubicacion            String                 @db.VarChar(255)
+  categoria            Int
+  idCiudad             Int
+  ciudad               Ciudad                 @relation(fields: [idCiudad], references: [idCiudad], onDelete: Restrict)
+  habitaciones         Habitacion[]
+  preciosRegimen       PrecioRegimen[]
+  hotelTipoHabitacion  Hotel_TipoHabitacion[]
+  hotelTarifa          Hotel_Tarifa[]
+
+  @@index([idCiudad])
+}
+
+model TipoHabitacion {
+  idTipoHabitacion     Int                    @id @default(autoincrement())
+  categoria            String                 @unique @db.VarChar(50)
+  camasIndividuales    Int                    @default(0)
+  camasDobles          Int                    @default(0)
+  habitaciones         Habitacion[]
+  pernoctaciones       Pernoctacion[]
+  hotelTipoHabitacion  Hotel_TipoHabitacion[]
+  hotelTarifa          Hotel_Tarifa[]
+}
+
+model Habitacion {
+  numeroHabitacion  String          @id @db.VarChar(10)
+  idTipoHabitacion  Int
+  idHotel           Int
+  tipoHabitacion    TipoHabitacion  @relation(fields: [idTipoHabitacion], references: [idTipoHabitacion], onDelete: Restrict)
+  hotel             Hotel           @relation(fields: [idHotel], references: [idHotel], onDelete: Cascade)
+  contratos         Contrato[]
+
+  @@index([idTipoHabitacion])
+  @@index([idHotel])
+}
+
+model Regimen {
+  idRegimen      Int             @id @default(autoincrement())
+  codigo         String          @unique @db.VarChar(10)
+  preciosRegimen PrecioRegimen[]
+}
+
+model PrecioRegimen {
+  idPrecioRegimen Int       @id @default(autoincrement())
+  idRegimen       Int
+  idHotel         Int
+  precio          Decimal   @db.Decimal(10, 2)
+  regimen         Regimen   @relation(fields: [idRegimen], references: [idRegimen], onDelete: Cascade)
+  hotel           Hotel     @relation(fields: [idHotel], references: [idHotel], onDelete: Cascade)
+  reservas        Reserva[]
+
+  @@index([idRegimen])
+  @@index([idHotel])
+}
+
+model Servicio {
+  codigoServicio        String                  @id @db.VarChar(10)
+  Precio                Decimal                 @db.Decimal(10, 2)
+  servicioPernoctacion  Servicio_Pernoctacion[]
+}
+
+model Tarifa {
+  idTarifa    Int            @id @default(autoincrement())
+  codigo      String         @db.VarChar(50)
+  precio      Decimal        @db.Decimal(10, 2)
+  hotelTarifa Hotel_Tarifa[]
+}
+
+model Descuento {
+  idDescuento      Int                 @id @default(autoincrement())
+  descripcion      String              @db.VarChar(255)
+  monto            Decimal             @db.Decimal(10, 2)
+  reservaDescuento Reserva_Descuento[]
+}
+
+// Entidades Principales y de Transacción
+
+model Cliente {
+  idCliente          Int                 @id @default(autoincrement())
+  nombre             String              @db.VarChar(100)
+  apellidos          String              @db.VarChar(150)
+  correoElectronico  String              @unique @db.VarChar(255)
+  fechaDeNacimiento  DateTime?           @db.Date
+  DNI                String              @unique @db.VarChar(20)
+  reservasPagadas    Reserva[]           @relation("ClientePaga")
+  reservasHuespedes  Reserva_Huespedes[]
+  pagosTarjeta       PagoTarjeta[]
+}
+
+model Reserva {
+  idReserva         Int                 @id @default(autoincrement())
+  fechaEntrada      DateTime            @db.Date
+  fechaSalida       DateTime            @db.Date
+  canalReserva      String?             @db.VarChar(50)
+  tipo              TipoReserva
+  idCliente_paga    Int
+  idPrecioRegimen   Int
+  clientePaga       Cliente             @relation("ClientePaga", fields: [idCliente_paga], references: [idCliente], onDelete: Restrict)
+  precioRegimen     PrecioRegimen       @relation(fields: [idPrecioRegimen], references: [idPrecioRegimen], onDelete: Restrict)
+  pernoctaciones    Pernoctacion[]
+  contrato          Contrato?
+  reservaHuespedes  Reserva_Huespedes[]
+  reservaDescuento  Reserva_Descuento[]
+  tiposPago         TipoPago[]
+
+  @@index([idCliente_paga])
+  @@index([idPrecioRegimen])
+}
+
+enum TipoReserva {
+  Reserva
+  Walkin
+}
+
+model Pernoctacion {
+  idPernoctacion        Int                     @id @default(autoincrement())
+  fechaPernoctacion     DateTime                @db.Date
+  idReserva             Int
+  idTipoHabitacion      Int
+  reserva               Reserva                 @relation(fields: [idReserva], references: [idReserva], onDelete: Cascade)
+  tipoHabitacion        TipoHabitacion          @relation(fields: [idTipoHabitacion], references: [idTipoHabitacion], onDelete: Restrict)
+  servicioPernoctacion  Servicio_Pernoctacion[]
+
+  @@index([idReserva])
+  @@index([idTipoHabitacion])
+}
+
+model Contrato {
+  idContrato       Int        @id @default(autoincrement())
+  montoTotal       Decimal    @db.Decimal(10, 2)
+  fechaCheckIn     DateTime?
+  fechaCheckOut    DateTime?
+  idReserva        Int        @unique
+  numeroHabitacion String     @db.VarChar(10)
+  reserva          Reserva    @relation(fields: [idReserva], references: [idReserva], onDelete: Restrict)
+  habitacion       Habitacion @relation(fields: [numeroHabitacion], references: [numeroHabitacion], onDelete: Restrict)
+  tiposPago        TipoPago[]
+
+  @@index([numeroHabitacion])
+}
+
+// Tablas de Pago (Estrategia: Tabla por Clase)
+
+model TipoPago {
+  idTipoPago    Int           @id @default(autoincrement())
+  montoPagado   Decimal       @db.Decimal(10, 2)
+  idReserva     Int?
+  idContrato    Int?
+  reserva       Reserva?      @relation(fields: [idReserva], references: [idReserva], onDelete: SetNull)
+  contrato      Contrato?     @relation(fields: [idContrato], references: [idContrato], onDelete: SetNull)
+  pagoEfectivo  PagoEfectivo?
+  pagoTarjeta   PagoTarjeta?
+
+  @@index([idReserva])
+  @@index([idContrato])
+}
+
+model PagoEfectivo {
+  idTipoPago Int      @id
+  cambio     Decimal  @default(0.00) @db.Decimal(10, 2)
+  tipoPago   TipoPago @relation(fields: [idTipoPago], references: [idTipoPago], onDelete: Cascade)
+}
+
+model PagoTarjeta {
+  idTipoPago      Int      @id
+  numeroTarjeta   String   @db.VarChar(20)
+  fechaExpiracion DateTime @db.Date
+  nombre_titular  String   @db.VarChar(150)
+  idCliente       Int
+  tipoPago        TipoPago @relation(fields: [idTipoPago], references: [idTipoPago], onDelete: Cascade)
+  cliente         Cliente  @relation(fields: [idCliente], references: [idCliente], onDelete: Restrict)
+
+  @@index([idCliente])
+}
+
+// Tablas Asociativas (Relaciones N:M)
+
+model Hotel_TipoHabitacion {
+  idHotel          Int
+  idTipoHabitacion Int
+  hotel            Hotel          @relation(fields: [idHotel], references: [idHotel], onDelete: Cascade)
+  tipoHabitacion   TipoHabitacion @relation(fields: [idTipoHabitacion], references: [idTipoHabitacion], onDelete: Cascade)
+
+  @@id([idHotel, idTipoHabitacion])
+  @@index([idTipoHabitacion])
+}
+
+model Hotel_Tarifa {
+  idHotel          Int
+  idTarifa         Int
+  idTipoHabitacion Int
+  hotel            Hotel          @relation(fields: [idHotel], references: [idHotel], onDelete: Cascade)
+  tarifa           Tarifa         @relation(fields: [idTarifa], references: [idTarifa], onDelete: Cascade)
+  tipoHabitacion   TipoHabitacion @relation(fields: [idTipoHabitacion], references: [idTipoHabitacion], onDelete: Cascade)
+
+  @@id([idHotel, idTarifa, idTipoHabitacion])
+  @@index([idTarifa])
+  @@index([idTipoHabitacion])
+}
+
+model Reserva_Huespedes {
+  idReserva Int
+  idCliente Int
+  reserva   Reserva @relation(fields: [idReserva], references: [idReserva], onDelete: Cascade)
+  cliente   Cliente @relation(fields: [idCliente], references: [idCliente], onDelete: Cascade)
+
+  @@id([idReserva, idCliente])
+  @@index([idCliente])
+}
+
+model Reserva_Descuento {
+  idReserva   Int
+  idDescuento Int
+  reserva     Reserva   @relation(fields: [idReserva], references: [idReserva], onDelete: Cascade)
+  descuento   Descuento @relation(fields: [idDescuento], references: [idDescuento], onDelete: Restrict)
+
+  @@id([idReserva, idDescuento])
+  @@index([idDescuento])
+}
+
+model Servicio_Pernoctacion {
+  idPernoctacion Int
+  codigoServicio String       @db.VarChar(10)
+  pernoctacion   Pernoctacion @relation(fields: [idPernoctacion], references: [idPernoctacion], onDelete: Cascade)
+  servicio       Servicio     @relation(fields: [codigoServicio], references: [codigoServicio], onDelete: Cascade)
+
+  @@id([idPernoctacion, codigoServicio])
+  @@index([codigoServicio])
+}
