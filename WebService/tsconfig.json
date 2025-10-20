@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "es6",                     // Compila a JavaScript moderno (ES6)
+    "module": "commonjs",                // Usa el sistema de módulos de Node.js
+    "outDir": "./dist",                  // Carpeta donde irá el código compilado
+    "rootDir": "./src",                  // Carpeta donde está tu código TypeScript
+    "strict": true,                      // Activa todas las reglas estrictas de TypeScript
+    "esModuleInterop": true              // Mejora la compatibilidad entre módulos
+  },
+  "include": ["src/**/*"] // Asegúrate de que TypeScript solo compile lo que está en la carpeta 'src'
+}
