@@ -1,12 +1,9 @@
 -- -----------------------------------------------------
 -- Script de Creación de Base de Datos para PMS
--- Versión: 2.1
--- Autor: Nasim Hosam Benyacoub Terki
--- Basado en el modelo conceptual actualizado.
+-- Versión: 2.2 (Corregida)
 -- -----------------------------------------------------
 
 -- Se eliminan las tablas si ya existen para permitir una nueva creación desde cero.
--- El orden es importante para evitar errores de claves foráneas.
 DROP TABLE IF EXISTS Servicio_Pernoctacion;
 DROP TABLE IF EXISTS Reserva_Descuento;
 DROP TABLE IF EXISTS Reserva_Huespedes;
@@ -27,11 +24,19 @@ DROP TABLE IF EXISTS Cliente;
 DROP TABLE IF EXISTS Habitacion;
 DROP TABLE IF EXISTS TipoHabitacion;
 DROP TABLE IF EXISTS Hotel;
+DROP TABLE IF EXISTS Ciudad;
 
 
 -- -----------------------------------------------------
 -- Entidades de Configuración y Catálogos
 -- -----------------------------------------------------
+
+-- Tabla para Ciudades (MOVIDA PARA CORREGIR ORDEN DE CREACIÓN)
+CREATE TABLE Ciudad (
+  idCiudad INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  pais VARCHAR(100) NOT NULL
+);
 
 -- Tabla para almacenar los hoteles
 CREATE TABLE Hotel (
@@ -42,13 +47,6 @@ CREATE TABLE Hotel (
   idCiudad INT NOT NULL,
   FOREIGN KEY (idCiudad) REFERENCES Ciudad(idCiudad) ON DELETE RESTRICT
 );
-
-CREATE TABLE Ciudad (
-  idCiudad INT AUTO_INCREMENT PRIMARY KEY,
-  nombre VARCHAR(100) NOT NULL,
-  pais VARCHAR(100) NOT NULL
-);
-
 
 -- Tabla para los tipos de habitación (Doble, Individual, Suite, etc.)
 CREATE TABLE TipoHabitacion (
@@ -77,10 +75,10 @@ CREATE TABLE Regimen (
 CREATE TABLE PrecioRegimen (
     idPrecioRegimen INT AUTO_INCREMENT PRIMARY KEY,
     idRegimen INT NOT NULL,
-    idHotel INT NOT NULL, -- MODIFICADO: Relación con Hotel añadida
+    idHotel INT NOT NULL,
     precio DECIMAL(10, 2) NOT NULL,
     FOREIGN KEY (idRegimen) REFERENCES Regimen(idRegimen) ON DELETE CASCADE,
-    FOREIGN KEY (idHotel) REFERENCES Hotel(idHotel) ON DELETE CASCADE -- MODIFICADO
+    FOREIGN KEY (idHotel) REFERENCES Hotel(idHotel) ON DELETE CASCADE
 );
 
 -- Tabla para los servicios adicionales que ofrece el hotel
@@ -89,7 +87,7 @@ CREATE TABLE Servicio (
   Precio DECIMAL(10, 2) NOT NULL
 );
 
--- Tabla para las tarifas de las habitaciones, que dependen de la temporada/hotel/tipo
+-- Tabla para las tarifas de las habitaciones
 CREATE TABLE Tarifa (
   idTarifa INT AUTO_INCREMENT PRIMARY KEY,
   codigo VARCHAR(50) NOT NULL COMMENT 'Ej: TARIFA_ALTA_2025',
@@ -99,8 +97,8 @@ CREATE TABLE Tarifa (
 -- Tabla para los descuentos aplicables
 CREATE TABLE Descuento (
   idDescuento INT AUTO_INCREMENT PRIMARY KEY,
-  Descripcion VARCHAR(255) NOT NULL,
-  Monto DECIMAL(10, 2) NOT NULL COMMENT 'Puede ser un monto fijo o un porcentaje, la lógica se aplicaría en la aplicación.'
+  descripcion VARCHAR(255) NOT NULL,
+  monto DECIMAL(10, 2) NOT NULL
 );
 
 
@@ -145,8 +143,8 @@ CREATE TABLE Pernoctacion (
 CREATE TABLE Contrato (
   idContrato INT AUTO_INCREMENT PRIMARY KEY,
   montoTotal DECIMAL(10, 2) NOT NULL,
-  fechaCheckIn DATETIME NULL COMMENT 'Nulo hasta que el cliente llega',
-  fechaCheckOut DATETIME NULL COMMENT 'Nulo hasta que el cliente se va',
+  fechaCheckIn DATETIME NULL,
+  fechaCheckOut DATETIME NULL,
   idReserva INT NOT NULL UNIQUE,
   numeroHabitacion VARCHAR(10) NOT NULL,
   FOREIGN KEY (idReserva) REFERENCES Reserva(idReserva) ON DELETE RESTRICT,
@@ -157,15 +155,14 @@ CREATE TABLE Contrato (
 -- Tablas de Pago (Estrategia: Tabla por Clase)
 -- -----------------------------------------------------
 
--- Tabla padre para los pagos, con los atributos comunes
+-- Tabla padre para los pagos (MODIFICADA: Sin cláusula CHECK)
 CREATE TABLE TipoPago (
   idTipoPago INT AUTO_INCREMENT PRIMARY KEY,
   montoPagado DECIMAL(10, 2) NOT NULL,
   idReserva INT NULL COMMENT 'Se rellena si es un prepago',
   idContrato INT NULL COMMENT 'Se rellena si el pago es en el hotel',
   FOREIGN KEY (idReserva) REFERENCES Reserva(idReserva) ON DELETE SET NULL,
-  FOREIGN KEY (idContrato) REFERENCES Contrato(idContrato) ON DELETE SET NULL,
-  CONSTRAINT chk_pago_asociacion_exclusiva CHECK ((idReserva IS NOT NULL AND idContrato IS NULL) OR (idReserva IS NULL AND idContrato IS NOT NULL))
+  FOREIGN KEY (idContrato) REFERENCES Contrato(idContrato) ON DELETE SET NULL
 );
 
 -- Tabla hija para pagos en efectivo
@@ -181,7 +178,7 @@ CREATE TABLE PagoTarjeta (
   numeroTarjeta VARCHAR(20) NOT NULL,
   fechaExpiracion DATE NOT NULL,
   nombre_titular VARCHAR(150) NOT NULL,
-  idCliente INT NOT NULL COMMENT 'Cliente titular de la tarjeta',
+  idCliente INT NOT NULL,
   FOREIGN KEY (idTipoPago) REFERENCES TipoPago(idTipoPago) ON DELETE CASCADE,
   FOREIGN KEY (idCliente) REFERENCES Cliente(idCliente) ON DELETE RESTRICT
 );
@@ -191,7 +188,6 @@ CREATE TABLE PagoTarjeta (
 -- Tablas Asociativas (Relaciones N:M)
 -- -----------------------------------------------------
 
--- Asocia qué tipos de habitación tiene cada hotel
 CREATE TABLE Hotel_TipoHabitacion (
   idHotel INT NOT NULL,
   idTipoHabitacion INT NOT NULL,
@@ -200,7 +196,6 @@ CREATE TABLE Hotel_TipoHabitacion (
   FOREIGN KEY (idTipoHabitacion) REFERENCES TipoHabitacion(idTipoHabitacion) ON DELETE CASCADE
 );
 
--- Asocia las tarifas a un hotel y tipo de habitación (asumiendo temporada implícita en Tarifa)
 CREATE TABLE Hotel_Tarifa (
   idHotel INT NOT NULL,
   idTarifa INT NOT NULL,
@@ -211,7 +206,6 @@ CREATE TABLE Hotel_Tarifa (
   FOREIGN KEY (idTipoHabitacion) REFERENCES TipoHabitacion(idTipoHabitacion) ON DELETE CASCADE
 );
 
--- Asocia qué clientes se hospedan en una reserva (además del pagador)
 CREATE TABLE Reserva_Huespedes (
   idReserva INT NOT NULL,
   idCliente INT NOT NULL,
@@ -220,7 +214,6 @@ CREATE TABLE Reserva_Huespedes (
   FOREIGN KEY (idCliente) REFERENCES Cliente(idCliente) ON DELETE CASCADE
 );
 
--- Asocia descuentos a una reserva
 CREATE TABLE Reserva_Descuento (
   idReserva INT NOT NULL,
   idDescuento INT NOT NULL,
@@ -229,7 +222,6 @@ CREATE TABLE Reserva_Descuento (
   FOREIGN KEY (idDescuento) REFERENCES Descuento(idDescuento) ON DELETE RESTRICT
 );
 
--- Asocia servicios a una pernoctación específica
 CREATE TABLE Servicio_Pernoctacion (
   idPernoctacion INT NOT NULL,
   codigoServicio VARCHAR(10) NOT NULL,
@@ -238,3 +230,30 @@ CREATE TABLE Servicio_Pernoctacion (
   FOREIGN KEY (codigoServicio) REFERENCES Servicio(codigoServicio) ON DELETE CASCADE
 );
 
+-- -----------------------------------------------------
+-- Triggers para validar la tabla TipoPago
+-- -----------------------------------------------------
+
+-- Trigger para validar ANTES de insertar un nuevo pago
+DELIMITER $$
+CREATE TRIGGER before_tipopago_insert
+BEFORE INSERT ON TipoPago
+FOR EACH ROW
+BEGIN
+    IF (NEW.idReserva IS NOT NULL AND NEW.idContrato IS NOT NULL) OR (NEW.idReserva IS NULL AND NEW.idContrato IS NULL) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Un pago debe estar asociado a una reserva O a un contrato, pero no a ambos o a ninguno.';
+    END IF;
+END$$
+DELIMITER ;
+
+-- Trigger para validar ANTES de actualizar un pago existente
+DELIMITER $$
+CREATE TRIGGER before_tipopago_update
+BEFORE UPDATE ON TipoPago
+FOR EACH ROW
+BEGIN
+    IF (NEW.idReserva IS NOT NULL AND NEW.idContrato IS NOT NULL) OR (NEW.idReserva IS NULL AND NEW.idContrato IS NULL) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Un pago debe estar asociado a una reserva O a un contrato, pero no a ambos o a ninguno.';
+    END IF;
+END$$
+DELIMITER ;

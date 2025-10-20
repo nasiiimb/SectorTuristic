@@ -1,0 +1,11 @@
+# Dependencias
+node_modules
+
+# Código compilado
+dist
+
+# Variables de entorno
+.env
+
+# Scripts de base de datos con credenciales
+BD/crear_bd.ps1
