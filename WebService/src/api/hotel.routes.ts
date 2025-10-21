@@ -127,4 +127,53 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// GET /hoteles/{idHotel}/tiposHabitacion - Obtener tipos de habitación de un hotel
+router.get('/:id/tiposHabitacion', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verificar que el hotel existe
+    const hotel = await prisma.hotel.findUnique({
+      where: {
+        idHotel: parseInt(id),
+      },
+    });
+
+    if (!hotel) {
+      return res.status(404).json({
+        message: 'Hotel no encontrado',
+      });
+    }
+
+    // Obtener los tipos de habitación del hotel
+    const tiposHabitacion = await prisma.tipoHabitacion.findMany({
+      where: {
+        habitaciones: {
+          some: {
+            idHotel: parseInt(id),
+          },
+        },
+      },
+      include: {
+        habitaciones: {
+          where: {
+            idHotel: parseInt(id),
+          },
+        },
+      },
+    });
+
+    // Agregar conteo de habitaciones por tipo
+    const tiposConConteo = tiposHabitacion.map((tipo) => ({
+      ...tipo,
+      cantidadHabitaciones: tipo.habitaciones.length,
+    }));
+
+    res.status(200).json(tiposConConteo);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error en el servidor al obtener los tipos de habitación' });
+  }
+});
+
 export default router;

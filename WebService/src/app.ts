@@ -4,6 +4,12 @@ import hotelRoutes from './api/hotel.routes';
 import ciudadRoutes from './api/ciudad.routes';
 import clienteRoutes from './api/cliente.routes';
 import reservaRoutes from './api/reserva.routes';
+import disponibilidadRoutes from './api/disponibilidad.routes';
+import contratoRoutes from './api/contrato.routes';
+import pernoctacionRoutes from './api/pernoctacion.routes';
+import servicioRoutes from './api/servicio.routes';
+import regimenRoutes from './api/regimen.routes';
+import tipoHabitacionRoutes from './api/tipoHabitacion.routes';
 
 dotenv.config();
 
@@ -18,6 +24,12 @@ app.use('/api/hoteles', hotelRoutes);
 app.use('/api/ciudades', ciudadRoutes);
 app.use('/api/clientes', clienteRoutes);
 app.use('/api/reservas', reservaRoutes);
+app.use('/api/disponibilidad', disponibilidadRoutes);
+app.use('/api/contratos', contratoRoutes);
+app.use('/api/pernoctaciones', pernoctacionRoutes);
+app.use('/api/servicios', servicioRoutes);
+app.use('/api/regimenes', regimenRoutes);
+app.use('/api/tipos-habitacion', tipoHabitacionRoutes);
 
 // Default route
 app.get('/', (req: Request, res: Response) => {
@@ -30,10 +42,20 @@ app.get('/health', (req: Request, res: Response) => {
     status: 'OK',
     message: 'API funcionando correctamente',
     endpoints: {
-      hoteles: '/api/hoteles',
-      ciudades: '/api/ciudades',
-      clientes: '/api/clientes',
-      reservas: '/api/reservas',
+      catalogs: {
+        hoteles: '/api/hoteles',
+        ciudades: '/api/ciudades',
+        tiposHabitacion: '/api/tipos-habitacion',
+        regimenes: '/api/regimenes',
+        servicios: '/api/servicios',
+      },
+      operations: {
+        disponibilidad: '/api/disponibilidad?fechaEntrada=YYYY-MM-DD&fechaSalida=YYYY-MM-DD&hotel=NombreHotel',
+        crearReserva: 'POST /api/reservas',
+        checkin: 'POST /api/reservas/:idReserva/checkin',
+        checkout: 'POST /api/contratos/:idContrato/checkout',
+        anadirServicio: 'POST /api/pernoctaciones/:idPernoctacion/servicios',
+      },
     },
   });
 });
@@ -41,4 +63,7 @@ app.get('/health', (req: Request, res: Response) => {
 app.listen(port, () => {
   console.log(`⚡️ [server]: Servidor corriendo en http://localhost:${port}`);
   console.log(`📊 [prisma]: Usando Prisma ORM con MySQL`);
+  console.log(`📖 [docs]: Visita /health para ver los endpoints disponibles`);
 });
+
+

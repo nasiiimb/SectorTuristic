@@ -104,10 +104,9 @@ model Cliente {
   apellidos          String              @db.VarChar(150)
   correoElectronico  String              @unique @db.VarChar(255)
   fechaDeNacimiento  DateTime?           @db.Date
-  DNI                String              @unique @db.VarChar(20)
+  DNI                String?             @unique @db.VarChar(20)
   reservasPagadas    Reserva[]           @relation("ClientePaga")
   reservasHuespedes  Reserva_Huespedes[]
-  pagosTarjeta       PagoTarjeta[]
 }
 
 model Reserva {
@@ -124,7 +123,6 @@ model Reserva {
   contrato          Contrato?
   reservaHuespedes  Reserva_Huespedes[]
   reservaDescuento  Reserva_Descuento[]
-  tiposPago         TipoPago[]
 
   @@index([idCliente_paga])
   @@index([idPrecioRegimen])
@@ -157,43 +155,8 @@ model Contrato {
   numeroHabitacion String     @db.VarChar(10)
   reserva          Reserva    @relation(fields: [idReserva], references: [idReserva], onDelete: Restrict)
   habitacion       Habitacion @relation(fields: [numeroHabitacion], references: [numeroHabitacion], onDelete: Restrict)
-  tiposPago        TipoPago[]
 
   @@index([numeroHabitacion])
-}
-
-// Tablas de Pago (Estrategia: Tabla por Clase)
-
-model TipoPago {
-  idTipoPago    Int           @id @default(autoincrement())
-  montoPagado   Decimal       @db.Decimal(10, 2)
-  idReserva     Int?
-  idContrato    Int?
-  reserva       Reserva?      @relation(fields: [idReserva], references: [idReserva], onDelete: SetNull)
-  contrato      Contrato?     @relation(fields: [idContrato], references: [idContrato], onDelete: SetNull)
-  pagoEfectivo  PagoEfectivo?
-  pagoTarjeta   PagoTarjeta?
-
-  @@index([idReserva])
-  @@index([idContrato])
-}
-
-model PagoEfectivo {
-  idTipoPago Int      @id
-  cambio     Decimal  @default(0.00) @db.Decimal(10, 2)
-  tipoPago   TipoPago @relation(fields: [idTipoPago], references: [idTipoPago], onDelete: Cascade)
-}
-
-model PagoTarjeta {
-  idTipoPago      Int      @id
-  numeroTarjeta   String   @db.VarChar(20)
-  fechaExpiracion DateTime @db.Date
-  nombre_titular  String   @db.VarChar(150)
-  idCliente       Int
-  tipoPago        TipoPago @relation(fields: [idTipoPago], references: [idTipoPago], onDelete: Cascade)
-  cliente         Cliente  @relation(fields: [idCliente], references: [idCliente], onDelete: Restrict)
-
-  @@index([idCliente])
 }
 
 // Tablas Asociativas (Relaciones N:M)

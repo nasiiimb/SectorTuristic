@@ -1,9 +1,36 @@
-# Ejemplos de uso de la API con Prisma
+# 📖 Ejemplos de uso de la API con Prisma
 
 Este archivo contiene ejemplos de peticiones HTTP que puedes usar para probar tu API.
-Puedes usar herramientas como Postman, Insomnia, o la extensión REST Client de VS Code.
 
-## 🏨 HOTELES
+**Herramientas recomendadas:**
+- Postman
+- Insomnia
+- Thunder Client (extensión VS Code)
+- REST Client (extensión VS Code)
+- Navegador (para peticiones GET)
+
+---
+
+## 🔍 **DISPONIBILIDAD (con precios)**
+
+### Buscar disponibilidad por hotel
+```http
+GET http://localhost:3000/api/disponibilidad?fechaEntrada=2025-12-01&fechaSalida=2025-12-05&hotel=Gran
+```
+
+### Buscar disponibilidad por ciudad
+```http
+GET http://localhost:3000/api/disponibilidad?fechaEntrada=2025-12-01&fechaSalida=2025-12-05&ciudad=Palma
+```
+
+### Buscar disponibilidad por país
+```http
+GET http://localhost:3000/api/disponibilidad?fechaEntrada=2025-12-01&fechaSalida=2025-12-05&pais=España
+```
+
+---
+
+## 🏨 **HOTELES**
 
 ### Obtener todos los hoteles
 ```http
@@ -15,15 +42,20 @@ GET http://localhost:3000/api/hoteles
 GET http://localhost:3000/api/hoteles/1
 ```
 
+### Obtener tipos de habitación de un hotel
+```http
+GET http://localhost:3000/api/hoteles/1/tiposHabitacion
+```
+
 ### Crear un nuevo hotel
 ```http
 POST http://localhost:3000/api/hoteles
 Content-Type: application/json
 
 {
-  "nombre": "Hotel Paradise",
-  "ubicacion": "Playa de Palma",
-  "categoria": 5,
+  "nombre": "Hotel Nuevo",
+  "ubicacion": "Calle Principal 1",
+  "categoria": "4 estrellas",
   "idCiudad": 1
 }
 ```
@@ -34,8 +66,8 @@ PUT http://localhost:3000/api/hoteles/1
 Content-Type: application/json
 
 {
-  "nombre": "Hotel Paradise Renovado",
-  "categoria": 5
+  "nombre": "Hotel Renovado",
+  "categoria": "5 estrellas"
 }
 ```
 
@@ -103,7 +135,22 @@ Content-Type: application/json
 }
 ```
 
-## 📅 RESERVAS
+---
+
+## 📅 **RESERVAS (con identificadores naturales)**
+
+### Buscar reservas por cliente (útil para PMS)
+```http
+GET http://localhost:3000/api/reservas/buscar/cliente?nombre=Juan
+```
+
+```http
+GET http://localhost:3000/api/reservas/buscar/cliente?apellido=Pérez
+```
+
+```http
+GET http://localhost:3000/api/reservas/buscar/cliente?nombre=Juan&apellido=Pérez
+```
 
 ### Obtener todas las reservas
 ```http
@@ -115,21 +162,22 @@ GET http://localhost:3000/api/reservas
 GET http://localhost:3000/api/reservas/1
 ```
 
-### Crear una nueva reserva
+### Crear una nueva reserva (solo quien paga)
 ```http
 POST http://localhost:3000/api/reservas
 Content-Type: application/json
 
 {
-  "fechaEntrada": "2025-11-01",
-  "fechaSalida": "2025-11-05",
-  "canalReserva": "Web",
-  "tipo": "Reserva",
-  "idCliente_paga": 1,
-  "idPrecioRegimen": 1,
-  "huespedes": [1, 2]
+  "fechaEntrada": "2025-12-01",
+  "fechaSalida": "2025-12-05",
+  "nombreHotel": "Gran Hotel Miramar",
+  "tipoHabitacion": "Doble Superior",
+  "regimen": "Media Pensión",
+  "dniClientePaga": "12345678A"
 }
 ```
+
+**Nota:** Los huéspedes se especifican en el check-in, no en la reserva.
 
 ### Actualizar una reserva
 ```http
@@ -137,50 +185,184 @@ PUT http://localhost:3000/api/reservas/1
 Content-Type: application/json
 
 {
-  "fechaSalida": "2025-11-06",
-  "canalReserva": "Telefono"
+  "regimen": "Pensión Completa"
 }
 ```
 
-### Cancelar una reserva
+### Cancelar una reserva (libera disponibilidad)
 ```http
 DELETE http://localhost:3000/api/reservas/1
 ```
 
-## 🏥 Health Check
+---
+
+## 🔑 **CHECK-IN / CHECK-OUT**
+
+### Hacer check-in (especificar huéspedes aquí)
+```http
+POST http://localhost:3000/api/reservas/1/checkin
+Content-Type: application/json
+
+{
+  "numeroHabitacion": "201",
+  "dniHuespedes": ["12345678A", "87654321B"]
+}
+```
+
+### Hacer check-out
+```http
+POST http://localhost:3000/api/contratos/1/checkout
+```
+
+---
+
+## 🛎️ **SERVICIOS ADICIONALES**
+
+### Obtener todos los servicios
+```http
+GET http://localhost:3000/api/servicios
+```
+
+### Obtener un servicio por código
+```http
+GET http://localhost:3000/api/servicios/SPA
+```
+
+### Añadir servicio a una pernoctación
+```http
+POST http://localhost:3000/api/pernoctaciones/1/servicios
+Content-Type: application/json
+
+{
+  "codigoServicio": "SPA"
+}
+```
+
+---
+
+## 🛏️ **TIPOS DE HABITACIÓN**
+
+### Obtener todos los tipos de habitación
+```http
+GET http://localhost:3000/api/tipos-habitacion
+```
+
+---
+
+## 🍽️ **REGÍMENES**
+
+### Obtener todos los regímenes
+```http
+GET http://localhost:3000/api/regimenes
+```
+
+### Obtener un régimen por código
+```http
+GET http://localhost:3000/api/regimenes/MP
+```
+
+---
+
+## 🏥 **HEALTH CHECK**
 
 ### Verificar que el servidor está funcionando
 ```http
 GET http://localhost:3000/health
 ```
 
-## 📝 Notas
+---
 
-- Todas las respuestas incluyen los datos relacionados (joins automáticos)
-- Los campos de fecha deben estar en formato ISO: "YYYY-MM-DD"
-- Los errores devuelven código 500 con un mensaje descriptivo
-- Las búsquedas por ID que no existen devuelven 404
+## 🎯 **FLUJO COMPLETO - Ejemplo Práctico**
 
-## 🔧 Ejemplos con cURL
+### 1. Buscar disponibilidad
+```http
+GET http://localhost:3000/api/disponibilidad?fechaEntrada=2025-12-01&fechaSalida=2025-12-05&hotel=Gran
+```
 
-### Crear un hotel
-```bash
-curl -X POST http://localhost:3000/api/hoteles \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nombre": "Hotel Paradise",
-    "ubicacion": "Playa de Palma",
-    "categoria": 5,
-    "idCiudad": 1
-  }'
+### 2. Crear reserva
+```http
+POST http://localhost:3000/api/reservas
+Content-Type: application/json
+
+{
+  "fechaEntrada": "2025-12-01",
+  "fechaSalida": "2025-12-05",
+  "nombreHotel": "Gran Hotel Miramar",
+  "tipoHabitacion": "Doble Superior",
+  "regimen": "Media Pensión",
+  "dniClientePaga": "12345678A"
+}
+```
+
+### 3. Hacer check-in
+```http
+POST http://localhost:3000/api/reservas/1/checkin
+Content-Type: application/json
+
+{
+  "numeroHabitacion": "201",
+  "dniHuespedes": ["12345678A", "87654321B"]
+}
+```
+
+### 4. Añadir servicio
+```http
+POST http://localhost:3000/api/pernoctaciones/1/servicios
+Content-Type: application/json
+
+{
+  "codigoServicio": "SPA"
+}
+```
+
+### 5. Hacer check-out
+```http
+POST http://localhost:3000/api/contratos/1/checkout
+```
+
+---
+
+## 📝 **Notas Importantes**
+
+- ✅ La API usa **identificadores naturales** (nombres, DNI) no IDs internos
+- ✅ Los **huéspedes se especifican en el check-in**, no en la reserva
+- ✅ La **disponibilidad cuenta pernoctaciones** (reservas), no contratos (check-ins)
+- ✅ Los **precios son dinámicos** según categoría de hotel y tipo de habitación
+- ✅ Las fechas deben estar en formato **YYYY-MM-DD**
+- ✅ Todas las respuestas incluyen datos relacionados (joins automáticos con Prisma)
+
+---
+
+## 🔧 **Ejemplos con cURL (PowerShell)**
+
+### Buscar disponibilidad
+```powershell
+Invoke-WebRequest -Uri "http://localhost:3000/api/disponibilidad?fechaEntrada=2025-12-01&fechaSalida=2025-12-05&hotel=Gran" | Select-Object -ExpandProperty Content
+```
+
+### Crear reserva
+```powershell
+$body = @{
+  fechaEntrada = "2025-12-01"
+  fechaSalida = "2025-12-05"
+  nombreHotel = "Gran Hotel Miramar"
+  tipoHabitacion = "Doble Superior"
+  regimen = "Media Pensión"
+  dniClientePaga = "12345678A"
+} | ConvertTo-Json
+
+Invoke-WebRequest -Uri "http://localhost:3000/api/reservas" -Method POST -Body $body -ContentType "application/json" | Select-Object -ExpandProperty Content
 ```
 
 ### Obtener todos los hoteles
-```bash
-curl http://localhost:3000/api/hoteles
+```powershell
+Invoke-WebRequest -Uri "http://localhost:3000/api/hoteles" | Select-Object -ExpandProperty Content
 ```
 
-### Obtener un hotel específico
-```bash
-curl http://localhost:3000/api/hoteles/1
-```
+---
+
+## 📚 **Más Información**
+
+Para detalles completos de cada endpoint, consulta:
+- `API_DOCUMENTATION.md` - Documentación completa
+- `TESTING_GUIDE.md` - Guía de pruebas paso a paso

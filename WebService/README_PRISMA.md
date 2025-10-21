@@ -74,10 +74,12 @@ Visita: `http://localhost:3000/health`
 
 ## 📚 Endpoints Disponibles
 
+### **Catálogos y Consultas**
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | GET | `/api/hoteles` | Obtener todos los hoteles |
 | GET | `/api/hoteles/:id` | Obtener hotel por ID |
+| GET | `/api/hoteles/:id/tiposHabitacion` | Tipos de habitación del hotel |
 | POST | `/api/hoteles` | Crear hotel |
 | PUT | `/api/hoteles/:id` | Actualizar hotel |
 | DELETE | `/api/hoteles/:id` | Eliminar hotel |
@@ -88,11 +90,22 @@ Visita: `http://localhost:3000/health`
 | GET | `/api/clientes/:id` | Obtener cliente por ID |
 | POST | `/api/clientes` | Crear cliente |
 | PUT | `/api/clientes/:id` | Actualizar cliente |
+| GET | `/api/tipos-habitacion` | Obtener tipos de habitación |
+| GET | `/api/regimenes` | Obtener regímenes alimenticios |
+| GET | `/api/servicios` | Obtener servicios adicionales |
+
+### **Operaciones de Gestión (PMS)**
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/disponibilidad?fechaEntrada&fechaSalida&hotel` | **Buscar disponibilidad con precios** |
+| POST | `/api/reservas` | **Crear reserva** (con identificadores naturales) |
 | GET | `/api/reservas` | Obtener todas las reservas |
 | GET | `/api/reservas/:id` | Obtener reserva por ID |
-| POST | `/api/reservas` | Crear reserva |
 | PUT | `/api/reservas/:id` | Actualizar reserva |
 | DELETE | `/api/reservas/:id` | Cancelar reserva |
+| POST | `/api/reservas/:id/checkin` | **Check-in** (especificar huéspedes aquí) |
+| POST | `/api/contratos/:id/checkout` | **Check-out** |
+| POST | `/api/pernoctaciones/:id/servicios` | Añadir servicio adicional |
 
 ## 🎨 Prisma Studio
 
@@ -112,6 +125,7 @@ Abrirá una interfaz web en `http://localhost:5555`
 4. **Migraciones** - Control de versiones de la BD
 5. **Prisma Studio** - GUI para explorar datos
 6. **Mejor documentación** - IntelliSense en VS Code
+7. **Optimización automática** - groupBy para agregaciones eficientes
 
 ## 📖 Ejemplo de código
 
@@ -131,6 +145,48 @@ const hoteles = await prisma.hotel.findMany({
 });
 ```
 
+## 🎯 Características Especiales Implementadas
+
+### **1. Identificadores Naturales**
+La API usa nombres, DNI, códigos en lugar de IDs internos:
+```typescript
+// ✅ Natural: 
+POST /api/reservas
+{ "nombreHotel": "Gran Hotel Miramar", "dniClientePaga": "12345678A" }
+
+// ❌ Anterior:
+POST /api/reservas
+{ "idHotel": 1, "idCliente": 1 }
+```
+
+### **2. Sistema de Tarifas Dinámico**
+Precios basados en categoría de hotel y tipo de habitación:
+- Hotel 5★ Doble Superior: 200€/noche
+- Hotel 4★ Doble Superior: 150€/noche
+- Hotel 3★ Doble Superior: 100€/noche
+
+### **3. Prevención de Overbooking**
+Cuenta **pernoctaciones** (reservas) no contratos (check-ins):
+```typescript
+// Disponibilidad = Total habitaciones - Pernoctaciones activas
+const disponibles = totalHabitaciones - reservasActuales;
+```
+
+### **4. Optimización de Queries**
+Usa `groupBy` en lugar de N+1 queries:
+```typescript
+// ✅ Optimizado: 1 query con agregación
+const pernoctacionesPorTipo = await prisma.pernoctacion.groupBy({
+  by: ['idTipoHabitacion'],
+  _count: { idPernoctacion: true }
+});
+
+// ❌ Anterior: N queries en bucle
+for (const tipo of tipos) {
+  const count = await prisma.pernoctacion.count({ where: { idTipoHabitacion: tipo.id } });
+}
+```
+
 ## 🔧 Scripts disponibles
 
 ```bash
@@ -144,13 +200,25 @@ npm run prisma:push      # Sincronizar schema con BD
 
 ## 📝 Próximos pasos sugeridos
 
-1. ✅ Lee `PRISMA_GUIDE.md` para aprender más sobre Prisma
-2. ✅ Prueba los endpoints con `API_EXAMPLES.md`
+1. ✅ Lee `TESTING_GUIDE.md` para probar todos los endpoints
+2. ✅ Lee `API_DOCUMENTATION.md` para ver documentación completa
 3. ✅ Si tienes problemas de conexión, consulta `MYSQL_TROUBLESHOOTING.md`
 4. ✅ Explora Prisma Studio con `npm run prisma:studio`
-5. ✅ Añade validación de datos con bibliotecas como Zod o Joi
-6. ✅ Implementa manejo de errores más robusto
-7. ✅ Añade paginación en las consultas
+5. ✅ Lee `RESUMEN_IMPLEMENTACION.md` para entender el sistema completo
+6. ✅ Consulta `CORRECCION_DISPONIBILIDAD.md` para entender la lógica de disponibilidad
+7. ✅ Revisa `TARIFAS_INFO.md` para el sistema de precios
+
+## 📚 Documentación Completa
+
+| Archivo | Descripción |
+|---------|-------------|
+| `TESTING_GUIDE.md` | Guía completa de pruebas con ejemplos paso a paso |
+| `API_DOCUMENTATION.md` | Documentación detallada de todos los endpoints |
+| `RESUMEN_IMPLEMENTACION.md` | Resumen técnico de la implementación |
+| `CORRECCION_DISPONIBILIDAD.md` | Explicación de la lógica de disponibilidad |
+| `TARIFAS_INFO.md` | Sistema de tarifas y precios dinámicos |
+| `PRISMA_GUIDE.md` | Guía de uso de Prisma ORM |
+| `MYSQL_TROUBLESHOOTING.md` | Solución de problemas de MySQL |
 
 ## 🆘 ¿Necesitas ayuda?
 
@@ -160,4 +228,10 @@ npm run prisma:push      # Sincronizar schema con BD
 
 ---
 
-¡Tu proyecto está listo para usar Prisma! 🎊
+✅ **Sistema completo de gestión hotelera con Prisma ORM**  
+✅ **API con identificadores naturales**  
+✅ **Sistema de tarifas dinámico**  
+✅ **Prevención de overbooking**  
+✅ **Optimizado para producción**  
+
+¡Tu proyecto está listo para usar! 🎊
