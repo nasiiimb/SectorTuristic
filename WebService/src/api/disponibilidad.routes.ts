@@ -1,43 +1,35 @@
 import { Router } from 'express';
 import prisma from '../config/prisma';
+import { asyncHandler, ValidationError, NotFoundError } from '../middleware/errorHandler';
 
 const router = Router();
 
 // GET /disponibilidad - Busca tipos de habitación disponibles
-router.get('/', async (req, res) => {
-  try {
-    const { fechaEntrada, fechaSalida, hotel, ciudad, pais } = req.query;
+router.get('/', asyncHandler(async (req, res) => {
+  const { fechaEntrada, fechaSalida, hotel, ciudad, pais } = req.query;
 
-    // Validación de parámetros requeridos
-    if (!fechaEntrada || !fechaSalida) {
-      return res.status(400).json({
-        message: 'Los parámetros fechaEntrada y fechaSalida son requeridos',
-      });
-    }
+  // Validación de parámetros requeridos
+  if (!fechaEntrada || !fechaSalida) {
+    throw new ValidationError('Los parámetros fechaEntrada y fechaSalida son requeridos');
+  }
 
-    // Validar que al menos se proporcione un filtro de ubicación
-    if (!hotel && !ciudad && !pais) {
-      return res.status(400).json({
-        message: 'Se debe proporcionar al menos un filtro de ubicación: hotel (nombre), ciudad o pais',
-      });
-    }
+  // Validar que al menos se proporcione un filtro de ubicación
+  if (!hotel && !ciudad && !pais) {
+    throw new ValidationError('Se debe proporcionar al menos un filtro de ubicación: hotel (nombre), ciudad o pais');
+  }
 
-    const entrada = new Date(fechaEntrada as string);
-    const salida = new Date(fechaSalida as string);
+  const entrada = new Date(fechaEntrada as string);
+  const salida = new Date(fechaSalida as string);
 
-    // Validar que las fechas sean válidas
-    if (isNaN(entrada.getTime()) || isNaN(salida.getTime())) {
-      return res.status(400).json({
-        message: 'Las fechas proporcionadas no son válidas',
-      });
-    }
+  // Validar que las fechas sean válidas
+  if (isNaN(entrada.getTime()) || isNaN(salida.getTime())) {
+    throw new ValidationError('Las fechas proporcionadas no son válidas');
+  }
 
-    // Validar que la fecha de salida sea posterior a la de entrada
-    if (salida <= entrada) {
-      return res.status(400).json({
-        message: 'La fecha de salida debe ser posterior a la fecha de entrada',
-      });
-    }
+  // Validar que la fecha de salida sea posterior a la de entrada
+  if (salida <= entrada) {
+    throw new ValidationError('La fecha de salida debe ser posterior a la fecha de entrada');
+  }
 
     // Caso 1: Búsqueda por hotel específico (por nombre)
     if (hotel) {
@@ -54,9 +46,7 @@ router.get('/', async (req, res) => {
       });
 
       if (!hotelEncontrado) {
-        return res.status(404).json({
-          message: `No se encontró ningún hotel con el nombre "${hotel}"`,
-        });
+        throw new NotFoundError(`Hotel con nombre "${hotel}"`);
       }
 
       // Contar el total de habitaciones de cada tipo en el hotel
@@ -300,10 +290,6 @@ router.get('/', async (req, res) => {
     );
 
     res.status(200).json(hotelesConHabitaciones);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error en el servidor al buscar disponibilidad' });
-  }
-});
+}));
 
 export default router;
