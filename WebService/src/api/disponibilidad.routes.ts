@@ -75,30 +75,35 @@ router.get('/', async (req, res) => {
         habitacionesPorTipo.map((h) => h.idTipoHabitacion)
       );
 
-      // Contar las pernoctaciones (reservas) para cada tipo de habitación en el rango de fechas
-      // Solo contamos las que pertenecen a tipos de habitación de este hotel
-      const pernoctacionesPorTipo = await prisma.pernoctacion.groupBy({
-        by: ['idTipoHabitacion'],
+      // Obtener las reservas que se solapan con el rango de fechas
+      const reservasEnRango = await prisma.reserva.findMany({
         where: {
-          idTipoHabitacion: {
-            in: Array.from(tiposEnHotel),
+          precioRegimen: {
+            idHotel: hotelEncontrado.idHotel,
           },
-          reserva: {
-            AND: [
-              { fechaEntrada: { lt: salida } },
-              { fechaSalida: { gt: entrada } },
-            ],
-          },
+          AND: [
+            { fechaEntrada: { lt: salida } },
+            { fechaSalida: { gt: entrada } },
+          ],
         },
-        _count: {
-          idPernoctacion: true,
+        include: {
+          pernoctaciones: {
+            select: {
+              idTipoHabitacion: true,
+            },
+            take: 1, // Solo necesitamos saber el tipo, todas las pernoctaciones de una reserva tienen el mismo tipo
+          },
         },
       });
 
-      // Crear un mapa de reservas por tipo
-      const reservasPorTipoMap = new Map(
-        pernoctacionesPorTipo.map((p) => [p.idTipoHabitacion, p._count.idPernoctacion])
-      );
+      // Contar cuántas reservas hay por tipo de habitación
+      const reservasPorTipoMap = new Map<number, number>();
+      reservasEnRango.forEach((reserva) => {
+        const idTipo = reserva.pernoctaciones[0]?.idTipoHabitacion;
+        if (idTipo) {
+          reservasPorTipoMap.set(idTipo, (reservasPorTipoMap.get(idTipo) || 0) + 1);
+        }
+      });
 
       // Calcular disponibilidad para cada tipo de habitación
       const tiposDisponibles = await Promise.all(
@@ -207,29 +212,35 @@ router.get('/', async (req, res) => {
           habitacionesPorTipo.map((h) => h.idTipoHabitacion)
         );
 
-        // Contar las pernoctaciones (reservas) para cada tipo de habitación en el rango de fechas
-        const pernoctacionesPorTipo = await prisma.pernoctacion.groupBy({
-          by: ['idTipoHabitacion'],
+        // Obtener las reservas que se solapan con el rango de fechas
+        const reservasEnRango = await prisma.reserva.findMany({
           where: {
-            idTipoHabitacion: {
-              in: Array.from(tiposEnHotel),
+            precioRegimen: {
+              idHotel: hotel.idHotel,
             },
-            reserva: {
-              AND: [
-                { fechaEntrada: { lt: salida } },
-                { fechaSalida: { gt: entrada } },
-              ],
-            },
+            AND: [
+              { fechaEntrada: { lt: salida } },
+              { fechaSalida: { gt: entrada } },
+            ],
           },
-          _count: {
-            idPernoctacion: true,
+          include: {
+            pernoctaciones: {
+              select: {
+                idTipoHabitacion: true,
+              },
+              take: 1, // Solo necesitamos saber el tipo
+            },
           },
         });
 
-        // Crear un mapa de reservas por tipo
-        const reservasPorTipoMap = new Map(
-          pernoctacionesPorTipo.map((p) => [p.idTipoHabitacion, p._count.idPernoctacion])
-        );
+        // Contar cuántas reservas hay por tipo de habitación
+        const reservasPorTipoMap = new Map<number, number>();
+        reservasEnRango.forEach((reserva) => {
+          const idTipo = reserva.pernoctaciones[0]?.idTipoHabitacion;
+          if (idTipo) {
+            reservasPorTipoMap.set(idTipo, (reservasPorTipoMap.get(idTipo) || 0) + 1);
+          }
+        });
 
         // Calcular disponibilidad para cada tipo de habitación
         const tiposDisponibles = await Promise.all(

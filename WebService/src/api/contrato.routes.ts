@@ -3,6 +3,77 @@ import prisma from '../config/prisma';
 
 const router = Router();
 
+// GET /contratos - Obtiene todos los contratos (reservas con check-in)
+router.get('/', async (req, res) => {
+  try {
+    const contratos = await prisma.contrato.findMany({
+      include: {
+        reserva: {
+          include: {
+            clientePaga: true,
+            precioRegimen: {
+              include: {
+                hotel: true,
+                regimen: true,
+              },
+            },
+            pernoctaciones: {
+              include: {
+                tipoHabitacion: true,
+              },
+            },
+          },
+        },
+        habitacion: {
+          include: {
+            hotel: true,
+            tipoHabitacion: true,
+          },
+        },
+      },
+      orderBy: {
+        fechaCheckIn: 'desc',
+      },
+    });
+
+    // Formatear la respuesta
+    const contratosFormateados = contratos.map((contrato) => ({
+      idContrato: contrato.idContrato,
+      montoTotal: contrato.montoTotal,
+      fechaCheckIn: contrato.fechaCheckIn,
+      fechaCheckOut: contrato.fechaCheckOut,
+      numeroHabitacion: contrato.numeroHabitacion,
+      estado: contrato.fechaCheckOut ? 'Finalizado' : 'Activo',
+      reserva: {
+        idReserva: contrato.reserva.idReserva,
+        fechaEntrada: contrato.reserva.fechaEntrada,
+        fechaSalida: contrato.reserva.fechaSalida,
+        canalReserva: contrato.reserva.canalReserva,
+        tipo: contrato.reserva.tipo,
+        clientePaga: contrato.reserva.clientePaga,
+        hotel: contrato.reserva.precioRegimen.hotel,
+        regimen: contrato.reserva.precioRegimen.regimen,
+        tipoHabitacion: contrato.reserva.pernoctaciones[0]?.tipoHabitacion,
+        numeroNoches: contrato.reserva.pernoctaciones.length,
+      },
+      habitacion: contrato.habitacion,
+    }));
+
+    res.json({
+      total: contratosFormateados.length,
+      activos: contratosFormateados.filter((c) => c.estado === 'Activo').length,
+      finalizados: contratosFormateados.filter((c) => c.estado === 'Finalizado').length,
+      contratos: contratosFormateados,
+    });
+  } catch (error) {
+    console.error('Error al obtener contratos:', error);
+    res.status(500).json({
+      message: 'Error al obtener los contratos',
+      error: error instanceof Error ? error.message : 'Error desconocido',
+    });
+  }
+});
+
 // POST /contratos/{idContrato}/checkout - Realiza el check-out
 router.post('/:idContrato/checkout', async (req, res) => {
   try {

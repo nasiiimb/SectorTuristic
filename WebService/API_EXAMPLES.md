@@ -162,7 +162,7 @@ GET http://localhost:3000/api/reservas
 GET http://localhost:3000/api/reservas/1
 ```
 
-### Crear una nueva reserva (solo quien paga)
+### Crear una nueva reserva
 ```http
 POST http://localhost:3000/api/reservas
 Content-Type: application/json
@@ -170,14 +170,43 @@ Content-Type: application/json
 {
   "fechaEntrada": "2025-12-01",
   "fechaSalida": "2025-12-05",
-  "nombreHotel": "Gran Hotel Miramar",
+  "tipo": "Reserva",
+  "canalReserva": "Web",
+  "hotel": "Gran Hotel Miramar",
   "tipoHabitacion": "Doble Superior",
-  "regimen": "Media Pensión",
-  "dniClientePaga": "12345678A"
+  "regimen": "MP",
+  "clientePaga": {
+    "nombre": "Juan",
+    "apellidos": "García Pérez",
+    "correoElectronico": "juan.garcia@email.com",
+    "DNI": "12345678A",
+    "fechaDeNacimiento": "1990-05-15"
+  },
+  "huespedes": [
+    {
+      "nombre": "Juan",
+      "apellidos": "García Pérez",
+      "correoElectronico": "juan.garcia@email.com",
+      "DNI": "12345678A",
+      "fechaDeNacimiento": "1990-05-15"
+    },
+    {
+      "nombre": "María",
+      "apellidos": "López Sánchez",
+      "correoElectronico": "maria.lopez@email.com",
+      "DNI": "87654321B",
+      "fechaDeNacimiento": "1992-08-20"
+    }
+  ]
 }
 ```
 
-**Nota:** Los huéspedes se especifican en el check-in, no en la reserva.
+**Nota:** 
+- `tipo` puede ser: "Reserva" o "Walkin"
+- `regimen` debe ser el código (MP, PC, AD, SA)
+- `clientePaga` es el objeto con los datos del cliente que paga
+- `huespedes` es un array con los datos de todos los huéspedes (opcional)
+- Si el cliente o huéspedes ya existen en la BD (por DNI), se usan los existentes
 
 ### Actualizar una reserva
 ```http
@@ -185,9 +214,15 @@ PUT http://localhost:3000/api/reservas/1
 Content-Type: application/json
 
 {
-  "regimen": "Pensión Completa"
+  "fechaEntrada": "2025-12-02",
+  "fechaSalida": "2025-12-06",
+  "canalReserva": "Teléfono",
+  "tipo": "Reserva",
+  "idTipoHabitacion": 2
 }
 ```
+
+**Nota:** Solo se pueden actualizar reservas antes del check-in. Se puede cambiar fechas, canal, tipo y tipo de habitación.
 
 ### Cancelar una reserva (libera disponibilidad)
 ```http
@@ -198,14 +233,87 @@ DELETE http://localhost:3000/api/reservas/1
 
 ## 🔑 **CHECK-IN / CHECK-OUT**
 
-### Hacer check-in (especificar huéspedes aquí)
+### Hacer check-in (especificar habitación)
 ```http
 POST http://localhost:3000/api/reservas/1/checkin
 Content-Type: application/json
 
 {
-  "numeroHabitacion": "201",
-  "dniHuespedes": ["12345678A", "87654321B"]
+  "numeroHabitacion": "201"
+}
+```
+
+**Nota:** El número de habitación debe coincidir con el tipo reservado y pertenecer al hotel correcto.
+
+---
+
+## 📋 **CONTRATOS (Check-ins/Check-outs)**
+
+### Obtener todos los contratos
+```http
+GET http://localhost:3000/api/contratos
+```
+
+**Respuesta de ejemplo:**
+```json
+{
+  "total": 5,
+  "activos": 2,
+  "finalizados": 3,
+  "contratos": [
+    {
+      "idContrato": 1,
+      "montoTotal": "750",
+      "fechaCheckIn": "2025-10-29T17:43:41.000Z",
+      "fechaCheckOut": "2025-10-29T17:43:41.000Z",
+      "numeroHabitacion": "H1-301",
+      "estado": "Finalizado",
+      "reserva": {
+        "idReserva": 1,
+        "fechaEntrada": "2025-11-01T00:00:00.000Z",
+        "fechaSalida": "2025-11-06T00:00:00.000Z",
+        "canalReserva": "Web",
+        "tipo": "Reserva",
+        "clientePaga": {
+          "idCliente": 1,
+          "nombre": "Maria",
+          "apellidos": "Garcia Lopez",
+          "correoElectronico": "maria.garcia@email.com",
+          "DNI": "11111111A"
+        },
+        "hotel": {
+          "idHotel": 1,
+          "nombre": "Gran Hotel del Mar",
+          "ubicacion": "Paseo Maritimo, 10, Palma",
+          "categoria": 5
+        },
+        "regimen": {
+          "idRegimen": 4,
+          "codigo": "PC"
+        },
+        "tipoHabitacion": {
+          "idTipoHabitacion": 3,
+          "categoria": "Suite Junior",
+          "camasIndividuales": 0,
+          "camasDobles": 2
+        },
+        "numeroNoches": 5
+      },
+      "habitacion": {
+        "numeroHabitacion": "H1-301",
+        "idTipoHabitacion": 3,
+        "idHotel": 1,
+        "hotel": {
+          "idHotel": 1,
+          "nombre": "Gran Hotel del Mar"
+        },
+        "tipoHabitacion": {
+          "idTipoHabitacion": 3,
+          "categoria": "Suite Junior"
+        }
+      }
+    }
+  ]
 }
 ```
 
@@ -287,10 +395,34 @@ Content-Type: application/json
 {
   "fechaEntrada": "2025-12-01",
   "fechaSalida": "2025-12-05",
-  "nombreHotel": "Gran Hotel Miramar",
+  "tipo": "Reserva",
+  "canalReserva": "Web",
+  "hotel": "Gran Hotel Miramar",
   "tipoHabitacion": "Doble Superior",
-  "regimen": "Media Pensión",
-  "dniClientePaga": "12345678A"
+  "regimen": "MP",
+  "clientePaga": {
+    "nombre": "Juan",
+    "apellidos": "García Pérez",
+    "correoElectronico": "juan.garcia@email.com",
+    "DNI": "12345678A",
+    "fechaDeNacimiento": "1990-05-15"
+  },
+  "huespedes": [
+    {
+      "nombre": "Juan",
+      "apellidos": "García Pérez",
+      "correoElectronico": "juan.garcia@email.com",
+      "DNI": "12345678A",
+      "fechaDeNacimiento": "1990-05-15"
+    },
+    {
+      "nombre": "María",
+      "apellidos": "López Sánchez",
+      "correoElectronico": "maria.lopez@email.com",
+      "DNI": "87654321B",
+      "fechaDeNacimiento": "1992-08-20"
+    }
+  ]
 }
 ```
 
@@ -300,8 +432,7 @@ POST http://localhost:3000/api/reservas/1/checkin
 Content-Type: application/json
 
 {
-  "numeroHabitacion": "201",
-  "dniHuespedes": ["12345678A", "87654321B"]
+  "numeroHabitacion": "201"
 }
 ```
 
@@ -324,11 +455,15 @@ POST http://localhost:3000/api/contratos/1/checkout
 
 ## 📝 **Notas Importantes**
 
-- ✅ La API usa **identificadores naturales** (nombres, DNI) no IDs internos
-- ✅ Los **huéspedes se especifican en el check-in**, no en la reserva
+- ✅ La API usa **identificadores naturales** (nombres de hotel, categorías, códigos de régimen)
+- ✅ Los **huéspedes se pueden especificar en la reserva o añadirse después**
+- ✅ El **cliente que paga se especifica con un objeto** con todos sus datos
+- ✅ Si el cliente o huéspedes ya existen (por DNI), se reutilizan
 - ✅ La **disponibilidad cuenta pernoctaciones** (reservas), no contratos (check-ins)
 - ✅ Los **precios son dinámicos** según categoría de hotel y tipo de habitación
 - ✅ Las fechas deben estar en formato **YYYY-MM-DD**
+- ✅ El **tipo de reserva** puede ser "Reserva" o "Walkin"
+- ✅ Los **códigos de régimen** son: MP (Media Pensión), PC (Pensión Completa), AD (Alojamiento y Desayuno), SA (Solo Alojamiento)
 - ✅ Todas las respuestas incluyen datos relacionados (joins automáticos con Prisma)
 
 ---
@@ -345,11 +480,35 @@ Invoke-WebRequest -Uri "http://localhost:3000/api/disponibilidad?fechaEntrada=20
 $body = @{
   fechaEntrada = "2025-12-01"
   fechaSalida = "2025-12-05"
-  nombreHotel = "Gran Hotel Miramar"
+  tipo = "Reserva"
+  canalReserva = "Web"
+  hotel = "Gran Hotel Miramar"
   tipoHabitacion = "Doble Superior"
-  regimen = "Media Pensión"
-  dniClientePaga = "12345678A"
-} | ConvertTo-Json
+  regimen = "MP"
+  clientePaga = @{
+    nombre = "Juan"
+    apellidos = "García Pérez"
+    correoElectronico = "juan.garcia@email.com"
+    DNI = "12345678A"
+    fechaDeNacimiento = "1990-05-15"
+  }
+  huespedes = @(
+    @{
+      nombre = "Juan"
+      apellidos = "García Pérez"
+      correoElectronico = "juan.garcia@email.com"
+      DNI = "12345678A"
+      fechaDeNacimiento = "1990-05-15"
+    },
+    @{
+      nombre = "María"
+      apellidos = "López Sánchez"
+      correoElectronico = "maria.lopez@email.com"
+      DNI = "87654321B"
+      fechaDeNacimiento = "1992-08-20"
+    }
+  )
+} | ConvertTo-Json -Depth 3
 
 Invoke-WebRequest -Uri "http://localhost:3000/api/reservas" -Method POST -Body $body -ContentType "application/json" | Select-Object -ExpandProperty Content
 ```
