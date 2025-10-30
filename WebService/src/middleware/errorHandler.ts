@@ -33,7 +33,7 @@ export class ConflictError extends AppError {
 }
 
 // Middleware para capturar errores asíncronos
-export const asyncHandler = (fn: Function) => {
+export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
