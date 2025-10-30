@@ -1,46 +1,35 @@
 import { Router } from 'express';
 import prisma from '../config/prisma';
+import { asyncHandler, NotFoundError } from '../middleware/errorHandler';
 
 const router = Router();
 
 // GET /servicios - Obtener todos los servicios disponibles
-router.get('/', async (req, res) => {
-  try {
-    const servicios = await prisma.servicio.findMany({
-      orderBy: {
-        codigoServicio: 'asc',
-      },
-    });
+router.get('/', asyncHandler(async (req, res) => {
+  const servicios = await prisma.servicio.findMany({
+    orderBy: {
+      codigoServicio: 'asc',
+    },
+  });
 
-    res.status(200).json(servicios);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error en el servidor al obtener los servicios' });
-  }
-});
+  res.status(200).json(servicios);
+}));
 
 // GET /servicios/:codigo - Obtener un servicio específico
-router.get('/:codigo', async (req, res) => {
-  try {
-    const { codigo } = req.params;
+router.get('/:codigo', asyncHandler(async (req, res) => {
+  const { codigo } = req.params;
 
-    const servicio = await prisma.servicio.findUnique({
-      where: {
-        codigoServicio: codigo,
-      },
-    });
+  const servicio = await prisma.servicio.findUnique({
+    where: {
+      codigoServicio: codigo,
+    },
+  });
 
-    if (!servicio) {
-      return res.status(404).json({
-        message: 'Servicio no encontrado',
-      });
-    }
-
-    res.status(200).json(servicio);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error en el servidor al obtener el servicio' });
+  if (!servicio) {
+    throw new NotFoundError('Servicio');
   }
-});
+
+  res.status(200).json(servicio);
+}));
 
 export default router;
