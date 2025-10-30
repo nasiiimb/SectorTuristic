@@ -10,14 +10,22 @@ import pernoctacionRoutes from './api/pernoctacion.routes';
 import servicioRoutes from './api/servicio.routes';
 import regimenRoutes from './api/regimen.routes';
 import tipoHabitacionRoutes from './api/tipoHabitacion.routes';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// Middleware for JSON
-app.use(express.json());
+// Middleware para establecer charset UTF-8 en todas las respuestas
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
+
+// Middleware for JSON con UTF-8
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Use the routes
 app.use('/api/hoteles', hotelRoutes);
@@ -52,6 +60,8 @@ app.get('/health', (req: Request, res: Response) => {
       operations: {
         disponibilidad: '/api/disponibilidad?fechaEntrada=YYYY-MM-DD&fechaSalida=YYYY-MM-DD&hotel=NombreHotel',
         crearReserva: 'POST /api/reservas',
+        verReservas: 'GET /api/reservas',
+        verContratos: 'GET /api/contratos',
         checkin: 'POST /api/reservas/:idReserva/checkin',
         checkout: 'POST /api/contratos/:idContrato/checkout',
         anadirServicio: 'POST /api/pernoctaciones/:idPernoctacion/servicios',
@@ -60,10 +70,15 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// Middleware para rutas no encontradas (debe ir después de todas las rutas)
+app.use(notFoundHandler);
+
+// Middleware de manejo de errores (debe ir al final)
+app.use(errorHandler);
+
 app.listen(port, () => {
   console.log(`⚡️ [server]: Servidor corriendo en http://localhost:${port}`);
   console.log(`📊 [prisma]: Usando Prisma ORM con MySQL`);
   console.log(`📖 [docs]: Visita /health para ver los endpoints disponibles`);
 });
-
 
