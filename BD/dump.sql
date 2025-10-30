@@ -1,7 +1,12 @@
 -- -----------------------------------------------------
 -- Script de Creación de Base de Datos para PMS
--- Versión: 2.2 (Corregida)
+-- Versión: 2.3 (Corregida - UTF8)
 -- -----------------------------------------------------
+
+-- Establecer codificación UTF-8 para la sesión
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+SET character_set_connection=utf8mb4;
 
 -- Se eliminan las tablas si ya existen para permitir una nueva creación desde cero.
 DROP TABLE IF EXISTS Servicio_Pernoctacion;
