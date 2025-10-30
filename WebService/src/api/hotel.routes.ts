@@ -136,7 +136,7 @@ router.get('/:id/tiposHabitacion', asyncHandler(async (req, res) => {
   });
 
   // Agregar conteo de habitaciones por tipo
-  const tiposConConteo = tiposHabitacion.map((tipo) => ({
+  const tiposConConteo = tiposHabitacion.map((tipo: any) => ({
     ...tipo,
     cantidadHabitaciones: tipo.habitaciones.length,
   }));

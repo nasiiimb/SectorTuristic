@@ -1,0 +1,165 @@
+{
+	"info": {
+		"name": "PMS - Demo Completo",
+		"description": "Colección completa para demostrar el flujo: Disponibilidad → Reserva → Check-in → Check-out",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Consultar Disponibilidad",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/disponibilidad?fechaEntrada=2024-12-01&fechaSalida=2024-12-05&idHotel=1&idTipoHabitacion=1",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["api", "disponibilidad"],
+					"query": [
+						{
+							"key": "fechaEntrada",
+							"value": "2024-12-01"
+						},
+						{
+							"key": "fechaSalida",
+							"value": "2024-12-05"
+						},
+						{
+							"key": "idHotel",
+							"value": "1"
+						},
+						{
+							"key": "idTipoHabitacion",
+							"value": "1"
+						}
+					]
+				},
+				"description": "Verifica disponibilidad de habitaciones para las fechas especificadas"
+			}
+		},
+		{
+			"name": "2. Crear Reserva",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fechaEntrada\": \"2024-12-01\",\n  \"fechaSalida\": \"2024-12-05\",\n  \"canalReserva\": \"Web\",\n  \"tipo\": \"Reserva\",\n  \"idPrecioRegimen\": 1,\n  \"cliente\": {\n    \"nombre\": \"María\",\n    \"apellidos\": \"García López\",\n    \"correoElectronico\": \"maria.garcia@example.com\",\n    \"DNI\": \"12345678A\",\n    \"fechaDeNacimiento\": \"1990-05-15\"\n  },\n  \"huespedes\": [\n    {\n      \"nombre\": \"María\",\n      \"apellidos\": \"García López\",\n      \"correoElectronico\": \"maria.garcia@example.com\",\n      \"DNI\": \"12345678A\"\n    }\n  ],\n  \"pernoctaciones\": [\n    {\n      \"fechaPernoctacion\": \"2024-12-01\",\n      \"idTipoHabitacion\": 1\n    },\n    {\n      \"fechaPernoctacion\": \"2024-12-02\",\n      \"idTipoHabitacion\": 1\n    },\n    {\n      \"fechaPernoctacion\": \"2024-12-03\",\n      \"idTipoHabitacion\": 1\n    },\n    {\n      \"fechaPernoctacion\": \"2024-12-04\",\n      \"idTipoHabitacion\": 1\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/reservas",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["api", "reservas"]
+				},
+				"description": "Crea una nueva reserva. IMPORTANTE: Guarda el idReserva de la respuesta."
+			}
+		},
+		{
+			"name": "3. Ver Detalles de Reserva",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/reservas/10",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["api", "reservas", "10"]
+				},
+				"description": "Muestra los detalles completos de la reserva. Cambia el 10 por el idReserva obtenido."
+			}
+		},
+		{
+			"name": "4. Hacer Check-in (Crear Contrato)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"idReserva\": 10,\n  \"numeroHabitacion\": \"101\",\n  \"montoTotal\": 400.00\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/contratos",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["api", "contratos"]
+				},
+				"description": "Realiza el check-in creando un contrato. IMPORTANTE: Guarda el idContrato de la respuesta."
+			}
+		},
+		{
+			"name": "5. Hacer Check-out",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/contratos/5/checkout",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["api", "contratos", "5", "checkout"]
+				},
+				"description": "Realiza el check-out del contrato. Cambia el 5 por el idContrato obtenido."
+			}
+		},
+		{
+			"name": "Extra: Listar Hoteles",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/hoteles",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["api", "hoteles"]
+				},
+				"description": "Lista todos los hoteles disponibles"
+			}
+		},
+		{
+			"name": "Extra: Tipos de Habitación del Hotel",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/hoteles/1/tiposHabitacion",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["api", "hoteles", "1", "tiposHabitacion"]
+				},
+				"description": "Muestra los tipos de habitación disponibles en un hotel"
+			}
+		},
+		{
+			"name": "Extra: Ver Contrato",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/contratos/5",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["api", "contratos", "5"]
+				},
+				"description": "Muestra los detalles de un contrato específico"
+			}
+		}
+	]
+}
