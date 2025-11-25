@@ -14,11 +14,11 @@ INSERT INTO Ciudad (nombre, pais) VALUES
 -- -----------------------------------------------------
 
 -- 2. Inserción de Tipos de Habitación
-INSERT INTO TipoHabitacion (categoria, camasIndividuales, camasDobles) VALUES 
-('Doble Estándar', 0, 1),
-('Doble Superior', 0, 1),
-('Suite Junior', 0, 2),
-('Individual', 1, 0);
+INSERT INTO TipoHabitacion (categoria, camasIndividuales, camasDobles, foto_url) VALUES 
+('Doble Estándar', 0, 1, 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600'),
+('Doble Superior', 0, 1, 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600'),
+('Suite Junior', 0, 2, 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600'),
+('Individual', 1, 0, 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=600');
 
 -- -----------------------------------------------------
 

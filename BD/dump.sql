@@ -58,7 +58,8 @@ CREATE TABLE TipoHabitacion (
   idTipoHabitacion INT AUTO_INCREMENT PRIMARY KEY,
   categoria VARCHAR(50) NOT NULL UNIQUE,
   camasIndividuales INT DEFAULT 0,
-  camasDobles INT DEFAULT 0
+  camasDobles INT DEFAULT 0,
+  foto_url VARCHAR(500) DEFAULT NULL COMMENT 'URL de la foto de la habitación'
 );
 
 -- Tabla para las habitaciones físicas del hotel
@@ -118,7 +119,9 @@ CREATE TABLE Cliente (
   apellidos VARCHAR(150) NOT NULL,
   correoElectronico VARCHAR(255) NOT NULL UNIQUE,
   fechaDeNacimiento DATE,
-  DNI VARCHAR(20) NOT NULL UNIQUE
+  DNI VARCHAR(20) NOT NULL UNIQUE,
+  email VARCHAR(255) UNIQUE COMMENT 'Email para login',
+  password VARCHAR(255) COMMENT 'Password hasheado para autenticación'
 );
 
 -- Tabla para las reservas
