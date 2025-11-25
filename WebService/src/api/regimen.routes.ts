@@ -34,6 +34,56 @@ router.get('/', asyncHandler(async (req, res) => {
   res.status(200).json(regimenesFormateados);
 }));
 
+// GET /regimenes/hotel/:idHotel - Obtener regímenes disponibles en un hotel con sus precios
+router.get('/hotel/:idHotel', asyncHandler(async (req, res) => {
+  const idHotel = parseInt(req.params.idHotel);
+
+  if (isNaN(idHotel)) {
+    res.status(400).json({ error: 'El ID del hotel debe ser un número válido' });
+    return;
+  }
+
+  // Verificar que el hotel existe
+  const hotel = await prisma.hotel.findUnique({
+    where: { idHotel },
+    include: { ciudad: true },
+  });
+
+  if (!hotel) {
+    throw new NotFoundError(`Hotel con ID ${idHotel}`);
+  }
+
+  // Obtener los precios de régimen del hotel
+  const preciosRegimen = await prisma.precioRegimen.findMany({
+    where: {
+      idHotel: idHotel,
+    },
+    include: {
+      regimen: true,
+    },
+  });
+
+  // Formatear respuesta
+  const regimenesConPrecios = preciosRegimen.map((pr) => ({
+    idPrecioRegimen: pr.idPrecioRegimen,
+    regimen: {
+      idRegimen: pr.regimen.idRegimen,
+      codigo: pr.regimen.codigo,
+    },
+    precio: parseFloat(pr.precio.toString()),
+  }));
+
+  res.status(200).json({
+    hotel: {
+      idHotel: hotel.idHotel,
+      nombre: hotel.nombre,
+      ubicacion: hotel.ubicacion,
+      ciudad: hotel.ciudad.nombre,
+    },
+    regimenes: regimenesConPrecios,
+  });
+}));
+
 // GET /regimenes/:codigo - Obtener un régimen específico
 router.get('/:codigo', asyncHandler(async (req, res) => {
   const { codigo } = req.params;

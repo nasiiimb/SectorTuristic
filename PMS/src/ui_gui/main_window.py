@@ -1,6 +1,7 @@
 ﻿"""
 MainWindow - Ventana principal del PMS con menú de opciones
 """
+import tkinter
 import customtkinter as ctk
 from tkinter import messagebox, Toplevel
 from datetime import datetime, timedelta, date
@@ -686,7 +687,7 @@ class MainWindow:
         
         for idx, (campo, valor) in enumerate(info):
             # Alternar colores de fondo
-            bg_color = ("#2B2B2B", "#1E1E1E") if idx % 2 == 0 else ("transparent", "transparent")
+            bg_color = ("#2B2B2B", "#1E1E1E") if idx % 2 == 0 else "transparent"
             frame = ctk.CTkFrame(info_frame, fg_color=bg_color, corner_radius=8)
             frame.pack(fill="x", pady=6, padx=15)
             
@@ -732,32 +733,53 @@ class MainWindow:
             checkin_frame = ctk.CTkFrame(acciones_frame, fg_color="transparent")
             checkin_frame.pack(pady=12)
             
+            # Obtener habitaciones disponibles del hotel
+            habitaciones_disponibles = self._obtener_habitaciones_disponibles(reserva)
+            
             # Mostrar formulario de check-in
-            label_hab = ctk.CTkLabel(checkin_frame, text="Número Habitación:", font=ctk.CTkFont(size=15, weight="bold"))
+            label_hab = ctk.CTkLabel(checkin_frame, text="Seleccionar Habitación:", font=ctk.CTkFont(size=15, weight="bold"))
             label_hab.pack(side="left", padx=12)
         
-            entry_hab = ctk.CTkEntry(
-                checkin_frame, 
-                width=170, 
-                height=45,
-                placeholder_text="Ej: 101",
-                font=ctk.CTkFont(size=14),
-                corner_radius=8
-            )
-            entry_hab.pack(side="left", padx=12)
-        
-            btn_checkin = ctk.CTkButton(
-                checkin_frame,
-                text="✓ Hacer Check-in",
-                command=lambda: self._hacer_checkin_con_huespedes(reserva, entry_hab.get()),
-                font=ctk.CTkFont(size=15, weight="bold"),
-                fg_color=("#2B7A78", "#14443F"),
-                hover_color=("#3D9970", "#2A7A5E"),
-                width=220,
-                height=45,
-                corner_radius=10
-            )
-            btn_checkin.pack(side="left", padx=12)
+            if habitaciones_disponibles:
+                # Crear opciones del dropdown con formato "Número - Tipo"
+                opciones_habitaciones = {}
+                for hab in habitaciones_disponibles:
+                    numero = hab.get('numeroHabitacion', 'N/A')
+                    tipo = hab.get('tipoHabitacion', {}).get('categoria', 'N/A')
+                    texto = f"{numero} - {tipo}"
+                    opciones_habitaciones[texto] = numero
+                
+                dropdown_hab = ctk.CTkOptionMenu(
+                    checkin_frame,
+                    values=list(opciones_habitaciones.keys()),
+                    font=ctk.CTkFont(size=14),
+                    width=250,
+                    height=45
+                )
+                dropdown_hab.pack(side="left", padx=12)
+                dropdown_hab.set(list(opciones_habitaciones.keys())[0])
+                
+                btn_checkin = ctk.CTkButton(
+                    checkin_frame,
+                    text="✓ Hacer Check-in",
+                    command=lambda: self._mostrar_checkin_con_huespedes_inline(reserva, opciones_habitaciones[dropdown_hab.get()]),
+                    font=ctk.CTkFont(size=15, weight="bold"),
+                    fg_color=("#2B7A78", "#14443F"),
+                    hover_color=("#3D9970", "#2A7A5E"),
+                    width=220,
+                    height=45,
+                    corner_radius=10
+                )
+                btn_checkin.pack(side="left", padx=12)
+            else:
+                # No hay habitaciones disponibles
+                label_no_hab = ctk.CTkLabel(
+                    checkin_frame,
+                    text="❌ No hay habitaciones disponibles",
+                    font=ctk.CTkFont(size=14),
+                    text_color=("#E74C3C", "#C0392B")
+                )
+                label_no_hab.pack(side="left", padx=12)
             
             # Frame para cancelar (separado visualmente)
             separador = ctk.CTkLabel(acciones_frame, text="— o —", font=ctk.CTkFont(size=14, weight="bold"))
@@ -779,12 +801,9 @@ class MainWindow:
             )
             btn_cancelar.pack(padx=12)
     
-    def _hacer_checkin_con_huespedes(self, reserva, numero_hab):
-        """Realiza el check-in de una reserva con gestión de huéspedes"""
+    def _mostrar_checkin_con_huespedes_inline(self, reserva, numero_hab):
+        """Muestra el panel inline para gestionar huéspedes y hacer check-in"""
         try:
-            from tkinter import simpledialog
-            from ui_gui.huespedes_dialog import HuespedesDialog
-            
             if not numero_hab:
                 messagebox.showwarning("Advertencia", "Debe ingresar el número de habitación")
                 return
@@ -825,47 +844,194 @@ class MainWindow:
             }
             capacidad = capacidades.get(categoria, 2)  # Default 2 si no se encuentra
             
-            # Abrir diálogo de huéspedes
-            dialog = HuespedesDialog(self.root, capacidad, categoria)
-            dialog.wait_window()
+            # Limpiar contenido y mostrar panel inline
+            self._limpiar_contenido()
             
-            # Si el usuario canceló, no continuar
-            if dialog.result is None:
-                messagebox.showinfo("Cancelado", "Check-in cancelado - no se registraron huéspedes")
-                return
-            
-            huespedes_lista = dialog.result
-            
-            # Hacer check-in con número de habitación y huéspedes
-            checkin_payload = {
-                "numeroHabitacion": numero_hab,
-                "huespedes": huespedes_lista
+            # Guardar datos en el objeto para usarlos en otros métodos
+            self.checkin_data = {
+                'reserva': reserva,
+                'numero_hab': numero_hab,
+                'capacidad': capacidad,
+                'categoria': categoria,
+                'huespedes': []
             }
             
-            checkin_response = self.api_client.post(
-                f"reservas/{reserva.id_reserva}/checkin",
-                checkin_payload
+            # ============= CONTENIDO =============
+            content_scroll = ctk.CTkScrollableFrame(self.content_frame)
+            content_scroll.pack(side="top", fill="both", expand=True, padx=20, pady=(20, 0))
+            
+            # Título
+            title = ctk.CTkLabel(
+                content_scroll,
+                text=f"👥 Gestionar Huéspedes - Check-in",
+                font=ctk.CTkFont(size=24, weight="bold")
             )
+            title.pack(pady=(0, 10))
             
-            if not checkin_response.success:
-                messagebox.showerror(
-                    "Error",
-                    f"Error al hacer check-in: {checkin_response.error}"
-                )
-                return
+            # Información de capacidad
+            info_frame = ctk.CTkFrame(content_scroll, corner_radius=10)
+            info_frame.pack(fill="x", pady=(0, 15))
             
-            messagebox.showinfo(
-                "Éxito",
-                f"✅ Check-in realizado correctamente\n"
-                f"📍 Habitación: {numero_hab}\n"
-                f"👥 Huéspedes registrados: {len(huespedes_lista)} + 1 (titular)\n"
-                f"🏨 Tipo: {categoria}"
+            info_label = ctk.CTkLabel(
+                info_frame,
+                text=f"📍 Habitación: {categoria} (Número: {numero_hab})\n"
+                     f"👤 Capacidad máxima: {capacidad} persona(s)\n"
+                     f"ℹ️  El cliente que paga cuenta como 1 huésped",
+                font=ctk.CTkFont(size=13),
+                justify="left"
             )
+            info_label.pack(padx=15, pady=15)
             
-            self._mostrar_buscar_reservas()
+            # Frame del formulario
+            form_frame = ctk.CTkFrame(content_scroll, corner_radius=10)
+            form_frame.pack(fill="x", pady=(0, 15))
+            
+            # Nombre
+            nombre_label = ctk.CTkLabel(form_frame, text="Nombre:", font=ctk.CTkFont(size=13))
+            nombre_label.pack(anchor="w", padx=20, pady=(10, 0))
+            
+            self.checkin_nombre_entry = ctk.CTkEntry(
+                form_frame,
+                placeholder_text="Nombre del huésped",
+                height=32,
+                font=ctk.CTkFont(size=12)
+            )
+            self.checkin_nombre_entry.pack(fill="x", padx=20, pady=(0, 8))
+            
+            # Apellidos
+            apellidos_label = ctk.CTkLabel(form_frame, text="Apellidos:", font=ctk.CTkFont(size=13))
+            apellidos_label.pack(anchor="w", padx=20, pady=(3, 0))
+            
+            self.checkin_apellidos_entry = ctk.CTkEntry(
+                form_frame,
+                placeholder_text="Apellidos del huésped",
+                height=32,
+                font=ctk.CTkFont(size=12)
+            )
+            self.checkin_apellidos_entry.pack(fill="x", padx=20, pady=(0, 8))
+            
+            # Email
+            email_label = ctk.CTkLabel(form_frame, text="Correo Electrónico:", font=ctk.CTkFont(size=13))
+            email_label.pack(anchor="w", padx=20, pady=(3, 0))
+            
+            self.checkin_email_entry = ctk.CTkEntry(
+                form_frame,
+                placeholder_text="email@ejemplo.com",
+                height=32,
+                font=ctk.CTkFont(size=12)
+            )
+            self.checkin_email_entry.pack(fill="x", padx=20, pady=(0, 8))
+            
+            # DNI
+            dni_label = ctk.CTkLabel(form_frame, text="DNI:", font=ctk.CTkFont(size=13))
+            dni_label.pack(anchor="w", padx=20, pady=(3, 0))
+            
+            self.checkin_dni_entry = ctk.CTkEntry(
+                form_frame,
+                placeholder_text="12345678A",
+                height=32,
+                font=ctk.CTkFont(size=12)
+            )
+            self.checkin_dni_entry.pack(fill="x", padx=20, pady=(0, 8))
+            
+            # Botón añadir
+            btn_añadir = ctk.CTkButton(
+                form_frame,
+                text="➕ Añadir Huésped",
+                command=self._anadir_huesped_checkin,
+                height=40,
+                font=ctk.CTkFont(size=13, weight="bold"),
+                fg_color=("#2B7A78", "#14443F"),
+                hover_color=("#3D9970", "#2A7A5E")
+            )
+            btn_añadir.pack(fill="x", padx=20, pady=(5, 15))
+            
+            # Lista de huéspedes
+            lista_frame = ctk.CTkFrame(content_scroll, corner_radius=10)
+            lista_frame.pack(fill="x", pady=(0, 15))
+            
+            lista_title = ctk.CTkLabel(
+                lista_frame,
+                text="📋 Huéspedes Añadidos (0) - Total: 1/{}".format(capacidad),
+                font=ctk.CTkFont(size=14, weight="bold")
+            )
+            lista_title.pack(pady=(10, 5))
+            self.checkin_lista_title_label = lista_title
+            
+            # Scrollable frame para la lista
+            self.checkin_lista_scroll = ctk.CTkScrollableFrame(lista_frame, height=150)
+            self.checkin_lista_scroll.pack(fill="x", padx=10, pady=(0, 10))
+            
+            # Mostrar cliente que paga (info inicial)
+            self._actualizar_lista_huespedes_checkin()
+            
+            # ============= BOTONES AL FINAL =============
+            button_container = ctk.CTkFrame(self.content_frame, fg_color="transparent", height=80)
+            button_container.pack(side="bottom", fill="x", padx=20, pady=20)
+            
+            btn_volver = ctk.CTkButton(
+                button_container,
+                text="⬅️ Volver",
+                command=lambda: self._mostrar_detalle_reserva(reserva),
+                height=50,
+                width=200,
+                font=ctk.CTkFont(size=16, weight="bold"),
+                fg_color=("#95A5A6", "#7F8C8D"),
+                hover_color=("#7F8C8D", "#707B7C")
+            )
+            btn_volver.pack(side="left", padx=20, expand=True)
+            
+            btn_confirmar = ctk.CTkButton(
+                button_container,
+                text="✅ CONFIRMAR CHECK-IN",
+                command=self._realizar_checkin_final,
+                height=50,
+                width=300,
+                font=ctk.CTkFont(size=16, weight="bold"),
+                fg_color=("#148F77", "#0E6655"),
+                hover_color=("#16A085", "#117A65")
+            )
+            btn_confirmar.pack(side="right", padx=20, expand=True)
             
         except Exception as e:
-            messagebox.showerror("Error", f"Error al hacer check-in: {str(e)}")
+            messagebox.showerror("Error", f"Error al mostrar check-in: {str(e)}")
+    
+    def _obtener_habitaciones_disponibles(self, reserva):
+        """Obtiene las habitaciones disponibles del hotel para el tipo de la reserva"""
+        try:
+            # Obtener el tipo de habitación de la reserva
+            response = self.api_client.get(f"reservas/{reserva.id_reserva}")
+            if not response.success:
+                return []
+            
+            reserva_data = response.data
+            pernoctaciones = reserva_data.get("pernoctaciones", [])
+            if not pernoctaciones:
+                return []
+            
+            tipo_habitacion = pernoctaciones[0].get("tipoHabitacion", {})
+            categoria = tipo_habitacion.get("categoria", "")
+            
+            # Obtener habitaciones disponibles del hotel usando el WebService
+            if not self.hotel_seleccionado:
+                return []
+            
+            # Llamar al endpoint de habitaciones disponibles
+            hab_response = self.api_client.get(
+                f"habitaciones/disponibles/list?hotel={self.hotel_seleccionado.id_hotel}&tipoHabitacion={categoria}"
+            )
+            
+            if not hab_response.success:
+                print(f"❌ Error al obtener habitaciones disponibles: {hab_response.error}")
+                return []
+            
+            habitaciones_disponibles = hab_response.data.get('habitaciones', [])
+            
+            return habitaciones_disponibles
+            
+        except Exception as e:
+            print(f"Error al obtener habitaciones disponibles: {e}")
+            return []
     
     def _cancelar_reserva(self, reserva):
         """Cancela una reserva sin check-in"""
@@ -1097,7 +1263,7 @@ class MainWindow:
     
     def _mostrar_lista_contratos(self, contratos):
         """Muestra una lista de contratos"""
-        # Limpiar resultados
+        # Limpiar solo el frame de resultados (no todo el content_frame)
         for widget in self.contratos_result_frame.winfo_children():
             widget.destroy()
         
@@ -1114,24 +1280,28 @@ class MainWindow:
         header_frame = ctk.CTkFrame(self.contratos_result_frame, fg_color=("#2B7A78", "#14443F"), corner_radius=8)
         header_frame.pack(fill="x", pady=(0, 10), padx=10)
         
-        # Configurar grid para que se expanda
-        header_frame.grid_columnconfigure(0, weight=2)  # Cliente
-        header_frame.grid_columnconfigure(1, weight=1)  # Habitación
-        header_frame.grid_columnconfigure(2, weight=2)  # Check-in
-        header_frame.grid_columnconfigure(3, weight=2)  # Check-out
-        header_frame.grid_columnconfigure(4, weight=1)  # Estado
-        header_frame.grid_columnconfigure(5, weight=1)  # Acción
+        # Configurar grid con anchos mínimos para alineación perfecta
+        header_frame.grid_columnconfigure(0, weight=3, minsize=180)  # Cliente
+        header_frame.grid_columnconfigure(1, weight=1, minsize=100)  # Habitación
+        header_frame.grid_columnconfigure(2, weight=2, minsize=150)  # Check-in
+        header_frame.grid_columnconfigure(3, weight=2, minsize=150)  # Check-out
+        header_frame.grid_columnconfigure(4, weight=1, minsize=100)  # Estado
+        header_frame.grid_columnconfigure(5, weight=1, minsize=120)  # Servicios
+        header_frame.grid_columnconfigure(6, weight=1, minsize=100)  # Acción
         
-        headers = ["Cliente", "Habitación", "Check-in", "Check-out", "Estado", "Acción"]
+        headers = ["Cliente", "Habitación", "Check-in", "Check-out", "Estado", "Servicios", "Acción"]
         
         for col, header in enumerate(headers):
+            # Anclar a la izquierda solo la columna Cliente, el resto al centro
+            anchor_pos = "w" if col == 0 else "center"
+            
             label = ctk.CTkLabel(
                 header_frame,
                 text=header,
                 font=ctk.CTkFont(size=14, weight="bold"),
-                anchor="center"
+                anchor=anchor_pos
             )
-            label.grid(row=0, column=col, padx=8, pady=15, sticky="ew")
+            label.grid(row=0, column=col, padx=5, pady=15, sticky="ew")
         
         # Datos
         for idx, contrato in enumerate(contratos):
@@ -1140,13 +1310,14 @@ class MainWindow:
             row_frame = ctk.CTkFrame(self.contratos_result_frame, fg_color=bg_color, corner_radius=5)
             row_frame.pack(fill="x", pady=3, padx=10)
             
-            # Configurar grid igual que header
-            row_frame.grid_columnconfigure(0, weight=2)
-            row_frame.grid_columnconfigure(1, weight=1)
-            row_frame.grid_columnconfigure(2, weight=2)
-            row_frame.grid_columnconfigure(3, weight=2)
-            row_frame.grid_columnconfigure(4, weight=1)
-            row_frame.grid_columnconfigure(5, weight=1)
+            # Configurar grid EXACTAMENTE igual que header
+            row_frame.grid_columnconfigure(0, weight=3, minsize=180)  # Cliente
+            row_frame.grid_columnconfigure(1, weight=1, minsize=100)  # Habitación
+            row_frame.grid_columnconfigure(2, weight=2, minsize=150)  # Check-in
+            row_frame.grid_columnconfigure(3, weight=2, minsize=150)  # Check-out
+            row_frame.grid_columnconfigure(4, weight=1, minsize=100)  # Estado
+            row_frame.grid_columnconfigure(5, weight=1, minsize=120)  # Servicios
+            row_frame.grid_columnconfigure(6, weight=1, minsize=100)  # Acción
             
             # Obtener información de la reserva
             cliente_nombre = "N/A"
@@ -1163,19 +1334,38 @@ class MainWindow:
             fecha_checkout = "N/A"
             estado = "✅ Activo"
             estado_color = ("#27AE60", "#2ECC71")
+            contrato_activo = True
             
             if contrato.fecha_checkout:
                 fecha_checkout = contrato.fecha_checkout.strftime("%d/%m/%Y %H:%M")
                 estado = "🔒 Finalizado"
                 estado_color = ("#7F8C8D", "#95A5A6")
+                contrato_activo = False
             
-            ctk.CTkLabel(row_frame, text=cliente_nombre, font=ctk.CTkFont(size=13), anchor="w").grid(row=0, column=0, padx=12, pady=12, sticky="ew")
-            ctk.CTkLabel(row_frame, text=str(contrato.numero_habitacion), font=ctk.CTkFont(size=13), anchor="center").grid(row=0, column=1, padx=8, pady=12, sticky="ew")
-            ctk.CTkLabel(row_frame, text=fecha_checkin, font=ctk.CTkFont(size=13), anchor="center").grid(row=0, column=2, padx=8, pady=12, sticky="ew")
-            ctk.CTkLabel(row_frame, text=fecha_checkout, font=ctk.CTkFont(size=13), anchor="center").grid(row=0, column=3, padx=8, pady=12, sticky="ew")
+            # Columnas de datos con padding UNIFORME
+            ctk.CTkLabel(row_frame, text=cliente_nombre, font=ctk.CTkFont(size=13), anchor="w").grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+            ctk.CTkLabel(row_frame, text=str(contrato.numero_habitacion), font=ctk.CTkFont(size=13), anchor="center").grid(row=0, column=1, padx=5, pady=10, sticky="ew")
+            ctk.CTkLabel(row_frame, text=fecha_checkin, font=ctk.CTkFont(size=13), anchor="center").grid(row=0, column=2, padx=5, pady=10, sticky="ew")
+            ctk.CTkLabel(row_frame, text=fecha_checkout, font=ctk.CTkFont(size=13), anchor="center").grid(row=0, column=3, padx=5, pady=10, sticky="ew")
             
             estado_label = ctk.CTkLabel(row_frame, text=estado, font=ctk.CTkFont(size=13), text_color=estado_color, anchor="center")
-            estado_label.grid(row=0, column=4, padx=8, pady=12, sticky="ew")
+            estado_label.grid(row=0, column=4, padx=5, pady=10, sticky="ew")
+            
+            # Botón de añadir servicios (solo si el contrato está activo)
+            if contrato_activo:
+                btn_servicios = ctk.CTkButton(
+                    row_frame,
+                    text="➕ Servicios",
+                    command=lambda c=contrato: self._mostrar_anadir_servicios(c),
+                    fg_color=("#F39C12", "#E67E22"),
+                    hover_color=("#E67E22", "#D35400"),
+                    font=ctk.CTkFont(size=12, weight="bold"),
+                    height=38
+                )
+                btn_servicios.grid(row=0, column=5, padx=5, pady=8, sticky="ew")
+            else:
+                # Espacio vacío si el contrato está finalizado
+                ctk.CTkLabel(row_frame, text="-", font=ctk.CTkFont(size=13), anchor="center").grid(row=0, column=5, padx=5, pady=10, sticky="ew")
             
             btn_ver = ctk.CTkButton(
                 row_frame,
@@ -1186,13 +1376,24 @@ class MainWindow:
                 font=ctk.CTkFont(size=13, weight="bold"),
                 height=38
             )
-            btn_ver.grid(row=0, column=5, padx=10, pady=10, sticky="ew")
+            btn_ver.grid(row=0, column=6, padx=5, pady=8, sticky="ew")
     
     def _mostrar_detalle_contrato(self, contrato):
         """Muestra el detalle de un contrato con opción de check-out"""
         # Limpiar resultados
         for widget in self.contratos_result_frame.winfo_children():
             widget.destroy()
+        
+        # Obtener datos completos del contrato desde la API para tener pernoctaciones con servicios
+        try:
+            response = self.api_client.get(f"contratos/{contrato.id_contrato}")
+            if response.success:
+                contrato_completo = response.data
+                pernoctaciones = contrato_completo.get('pernoctaciones', [])
+            else:
+                pernoctaciones = []
+        except:
+            pernoctaciones = []
         
         # Frame de detalle con estilo mejorado
         detalle_frame = ctk.CTkFrame(self.contratos_result_frame, corner_radius=15)
@@ -1207,6 +1408,18 @@ class MainWindow:
         )
         titulo.pack(pady=25)
         
+        # Calcular precio total con servicios
+        precio_base = float(contrato.monto_total)
+        precio_servicios = 0.0
+        
+        for pern in pernoctaciones:
+            servicios = pern.get('servicios', [])
+            for servicio_pern in servicios:
+                servicio = servicio_pern.get('servicio', {})
+                precio_servicios += float(servicio.get('Precio', 0))
+        
+        precio_total_final = precio_base + precio_servicios
+        
         # Información del contrato con mejor estilo
         info_frame = ctk.CTkFrame(detalle_frame, corner_radius=12)
         info_frame.pack(fill="both", expand=True, padx=30, pady=15)
@@ -1216,8 +1429,13 @@ class MainWindow:
             ("ID Contrato:", contrato.id_contrato),
             ("ID Reserva:", contrato.id_reserva),
             ("Número Habitación:", contrato.numero_habitacion),
-            ("Monto Total:", f"{contrato.monto_total:.2f} €"),
+            ("Monto Base (Habitación + Régimen):", f"{precio_base:.2f} €"),
         ]
+        
+        # Solo mostrar servicios si hay
+        if precio_servicios > 0:
+            info.append(("Servicios Adicionales:", f"{precio_servicios:.2f} €"))
+            info.append(("💰 TOTAL FINAL:", f"{precio_total_final:.2f} €"))
         
         # Formatear fechas
         if contrato.fecha_checkin:
@@ -1278,7 +1496,7 @@ class MainWindow:
                 sep_label.pack()
             else:
                 # Alternar colores de fondo
-                bg_color = ("#2B2B2B", "#1E1E1E") if idx % 2 == 0 else ("transparent", "transparent")
+                bg_color = ("#2B2B2B", "#1E1E1E") if idx % 2 == 0 else "transparent"
                 frame = ctk.CTkFrame(info_frame, fg_color=bg_color, corner_radius=8)
                 frame.pack(fill="x", pady=6, padx=15)
                 
@@ -1296,6 +1514,49 @@ class MainWindow:
                     font=ctk.CTkFont(size=15),
                     anchor="w"
                 ).pack(side="left", padx=10, pady=12)
+        
+        # Mostrar servicios añadidos (si hay)
+        if pernoctaciones and precio_servicios > 0:
+            servicios_frame = ctk.CTkFrame(detalle_frame, corner_radius=12)
+            servicios_frame.pack(fill="x", padx=30, pady=15)
+            
+            servicios_titulo = ctk.CTkLabel(
+                servicios_frame,
+                text="🛎️ Servicios Adicionales",
+                font=ctk.CTkFont(size=18, weight="bold"),
+                text_color=("#2B7A78", "#14443F")
+            )
+            servicios_titulo.pack(pady=15)
+            
+            for pern in pernoctaciones:
+                servicios = pern.get('servicios', [])
+                if servicios:
+                    fecha_pern = pern.get('fechaPernoctacion', 'N/A')
+                    if fecha_pern != 'N/A':
+                        from datetime import datetime
+                        fecha_obj = datetime.fromisoformat(fecha_pern.replace('Z', '+00:00'))
+                        fecha_pern = fecha_obj.strftime("%d/%m/%Y")
+                    
+                    pern_label = ctk.CTkLabel(
+                        servicios_frame,
+                        text=f"📅 {fecha_pern}:",
+                        font=ctk.CTkFont(size=14, weight="bold"),
+                        anchor="w"
+                    )
+                    pern_label.pack(anchor="w", padx=20, pady=(10, 5))
+                    
+                    for servicio_pern in servicios:
+                        servicio = servicio_pern.get('servicio', {})
+                        codigo = servicio.get('codigoServicio', 'N/A')
+                        precio = float(servicio.get('Precio', 0))
+                        
+                        serv_label = ctk.CTkLabel(
+                            servicios_frame,
+                            text=f"   • {codigo}: {precio:.2f}€",
+                            font=ctk.CTkFont(size=13),
+                            anchor="w"
+                        )
+                        serv_label.pack(anchor="w", padx=35, pady=2)
         
         # Botones al final con mejor estilo
         botones_frame = ctk.CTkFrame(detalle_frame, fg_color="transparent")
@@ -2040,11 +2301,15 @@ class MainWindow:
                 
             if hasattr(self, 'disponibilidad_data') and self.disponibilidad_data:
                 tipo_hab_seleccionado = self.dropdown_tipo_hab.get()
+                print(f"🔍 DEBUG - Tipo habitación seleccionado: '{tipo_hab_seleccionado}'")
+                print(f"🔍 DEBUG - Disponibilidad data keys: {list(self.disponibilidad_data.keys())}")
                 tipo_data = self.disponibilidad_data.get(tipo_hab_seleccionado)
                 if not tipo_data:
                     messagebox.showerror("Error", "Debe seleccionar un tipo de habitación válido")
                     return
                 id_tipo_habitacion = tipo_data['idTipoHabitacion']
+                print(f"🔍 DEBUG - ID tipo habitación: {id_tipo_habitacion}")
+                print(f"🔍 DEBUG - Categoria: {tipo_data['categoria']}")
             else:
                 messagebox.showerror("Error", "Debe cargar la disponibilidad primero (ingrese fecha de salida)")
                 return
@@ -2088,6 +2353,7 @@ class MainWindow:
             # Necesitamos obtener estos datos de la disponibilidad cargada
             tipo_hab_data = self.disponibilidad_data.get(tipo_hab_seleccionado)
             categoria_habitacion = tipo_hab_data['categoria']
+            print(f"🔍 DEBUG - Categoría habitación para API: '{categoria_habitacion}'")
             
             # Obtener régimen desde el dropdown
             texto_regimen = self.dropdown_regimen.get()
@@ -2160,3 +2426,362 @@ class MainWindow:
             import traceback
             traceback.print_exc()
             messagebox.showerror("Error", f"Error al crear reserva: {str(e)}")
+    
+    def _mostrar_anadir_servicios(self, contrato):
+        """Muestra el panel para añadir servicios a las pernoctaciones de un contrato"""
+        try:
+            # Limpiar contenido principal
+            self._limpiar_contenido()
+            
+            # Obtener datos completos del contrato desde la API
+            response = self.api_client.get(f"contratos/{contrato.id_contrato}")
+            if not response.success:
+                messagebox.showerror("Error", f"No se pudo obtener el contrato: {response.error}")
+                return
+            
+            contrato_data = response.data
+            pernoctaciones = contrato_data.get('pernoctaciones', [])
+            
+            if not pernoctaciones:
+                messagebox.showwarning("Advertencia", "Este contrato no tiene pernoctaciones")
+                return
+            
+            # Obtener servicios disponibles
+            servicios_response = self.api_client.get("servicios")
+            if not servicios_response.success:
+                messagebox.showerror("Error", f"No se pudieron obtener los servicios: {servicios_response.error}")
+                return
+            
+            servicios_disponibles = servicios_response.data
+            
+            # Título
+            titulo = ctk.CTkLabel(
+                self.content_frame,
+                text=f"🛎️ Añadir Servicios al Contrato #{contrato.id_contrato}",
+                font=ctk.CTkFont(size=24, weight="bold"),
+                text_color=("#2B7A78", "#2B7A78")
+            )
+            titulo.pack(pady=20)
+            
+            # Información del cliente
+            if contrato.reserva and contrato.reserva.cliente_paga:
+                info_cliente = ctk.CTkLabel(
+                    self.content_frame,
+                    text=f"Cliente: {contrato.reserva.cliente_paga.nombre} {contrato.reserva.cliente_paga.apellidos} | Habitación: {contrato.numero_habitacion}",
+                    font=ctk.CTkFont(size=14),
+                    text_color=("#7F8C8D", "#95A5A6")
+                )
+                info_cliente.pack(pady=5)
+            
+            # Frame principal con scroll
+            scroll_frame = ctk.CTkScrollableFrame(self.content_frame, corner_radius=15)
+            scroll_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            # Mostrar cada pernoctación
+            for idx, pernoctacion in enumerate(pernoctaciones):
+                fecha_pern = pernoctacion.get('fechaPernoctacion', 'N/A')
+                if fecha_pern != 'N/A':
+                    from datetime import datetime
+                    fecha_obj = datetime.fromisoformat(fecha_pern.replace('Z', '+00:00'))
+                    fecha_pern = fecha_obj.strftime("%d/%m/%Y")
+                
+                tipo_hab = pernoctacion.get('tipoHabitacion', {})
+                tipo_hab_nombre = tipo_hab.get('categoria', 'N/A')
+                
+                # Frame para esta pernoctación
+                pern_frame = ctk.CTkFrame(scroll_frame, corner_radius=12)
+                pern_frame.pack(fill="x", pady=10, padx=10)
+                
+                # Header de la pernoctación
+                header_frame = ctk.CTkFrame(pern_frame, fg_color=("#2B7A78", "#14443F"), corner_radius=8)
+                header_frame.pack(fill="x", padx=10, pady=10)
+                
+                pern_label = ctk.CTkLabel(
+                    header_frame,
+                    text=f"🌙 Noche {idx + 1} - {fecha_pern} ({tipo_hab_nombre})",
+                    font=ctk.CTkFont(size=16, weight="bold")
+                )
+                pern_label.pack(pady=10)
+                
+                # Servicios ya añadidos a esta pernoctación
+                servicios_actuales = pernoctacion.get('servicios', [])
+                if servicios_actuales:
+                    servicios_label = ctk.CTkLabel(
+                        pern_frame,
+                        text=f"✓ Servicios actuales: {', '.join([s.get('servicio', {}).get('codigoServicio', 'N/A') for s in servicios_actuales])}",
+                        font=ctk.CTkFont(size=12),
+                        text_color=("#27AE60", "#2ECC71")
+                    )
+                    servicios_label.pack(pady=5)
+                
+                # Dropdown para seleccionar servicio
+                servicios_frame = ctk.CTkFrame(pern_frame, fg_color="transparent")
+                servicios_frame.pack(fill="x", pady=10, padx=15)
+                
+                label_servicio = ctk.CTkLabel(
+                    servicios_frame,
+                    text="Servicio:",
+                    font=ctk.CTkFont(size=14, weight="bold")
+                )
+                label_servicio.pack(side="left", padx=10)
+                
+                # Crear opciones con nombre y precio
+                servicios_opciones = {}
+                for servicio in servicios_disponibles:
+                    codigo = servicio.get('codigoServicio', '')
+                    precio = float(servicio.get('Precio', 0))
+                    texto = f"{codigo} - {precio:.2f}€"
+                    servicios_opciones[texto] = codigo
+                
+                dropdown_servicio = ctk.CTkOptionMenu(
+                    servicios_frame,
+                    values=list(servicios_opciones.keys()),
+                    font=ctk.CTkFont(size=13),
+                    width=250
+                )
+                dropdown_servicio.pack(side="left", padx=10)
+                dropdown_servicio.set(list(servicios_opciones.keys())[0] if servicios_opciones else "")
+                
+                # Botón añadir
+                btn_anadir = ctk.CTkButton(
+                    servicios_frame,
+                    text="➕ Añadir",
+                    command=lambda p=pernoctacion, d=dropdown_servicio, ops=servicios_opciones: self._anadir_servicio_pernoctacion_inline(p, d, ops, contrato),
+                    fg_color=("#27AE60", "#229954"),
+                    hover_color=("#2ECC71", "#27AE60"),
+                    font=ctk.CTkFont(size=13, weight="bold"),
+                    width=120
+                )
+                btn_anadir.pack(side="left", padx=10)
+            
+            # Botón volver
+            btn_volver = ctk.CTkButton(
+                self.content_frame,
+                text="⬅️ Volver a Contratos",
+                command=self._mostrar_buscar_contratos,
+                fg_color=("#95A5A6", "#7F8C8D"),
+                hover_color=("#BDC3C7", "#95A5A6"),
+                font=ctk.CTkFont(size=15, weight="bold"),
+                width=200,
+                height=45
+            )
+            btn_volver.pack(pady=20)
+            
+        except Exception as e:
+            print(f"❌ Error al mostrar añadir servicios: {e}")
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Error", f"Error al mostrar servicios: {str(e)}")
+    
+    def _anadir_servicio_pernoctacion_inline(self, pernoctacion, dropdown, opciones, contrato):
+        """Añade un servicio a una pernoctación específica (versión inline sin ventana modal)"""
+        try:
+            id_pernoctacion = pernoctacion.get('idPernoctacion')
+            servicio_seleccionado = dropdown.get()
+            codigo_servicio = opciones.get(servicio_seleccionado)
+            
+            if not codigo_servicio:
+                messagebox.showwarning("Advertencia", "Debe seleccionar un servicio")
+                return
+            
+            # Llamar a la API
+            response = self.api_client.post(
+                f"pernoctaciones/{id_pernoctacion}/servicios",
+                {"codigoServicio": codigo_servicio}
+            )
+            
+            if not response.success:
+                error_msg = response.error or "Error desconocido"
+                if response.data and isinstance(response.data, dict):
+                    error_msg = response.data.get('message', error_msg)
+                messagebox.showerror("Error", f"No se pudo añadir el servicio:\n\n{error_msg}")
+                return
+            
+            # Mostrar mensaje de éxito en consola
+            print(f"✅ Servicio {codigo_servicio} añadido correctamente")
+            
+            # Refrescar la pantalla completa
+            self._mostrar_anadir_servicios(contrato)
+            
+        except Exception as e:
+            print(f"❌ Error al añadir servicio: {e}")
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Error", f"Error al añadir servicio: {str(e)}")
+    
+    # ============= MÉTODOS PARA GESTIÓN DE HUÉSPEDES INLINE =============
+    
+    def _anadir_huesped_checkin(self):
+        """Añade un huésped a la lista temporal del check-in"""
+        try:
+            nombre = self.checkin_nombre_entry.get().strip()
+            apellidos = self.checkin_apellidos_entry.get().strip()
+            email = self.checkin_email_entry.get().strip()
+            dni = self.checkin_dni_entry.get().strip()
+            
+            if not all([nombre, apellidos, email, dni]):
+                messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+                return
+            
+            # Validar capacidad (+1 por el cliente que paga)
+            capacidad = self.checkin_data['capacidad']
+            huespedes_actuales = len(self.checkin_data['huespedes'])
+            
+            if huespedes_actuales + 1 >= capacidad:
+                messagebox.showwarning(
+                    "Capacidad Excedida",
+                    f"La habitación solo tiene capacidad para {capacidad} persona(s).\n"
+                    f"Ya has añadido {huespedes_actuales} huésped(es) + 1 cliente que paga = {huespedes_actuales + 1}"
+                )
+                return
+            
+            # Validar DNI duplicado
+            if any(h['DNI'] == dni for h in self.checkin_data['huespedes']):
+                messagebox.showwarning("DNI Duplicado", "Ya existe un huésped con ese DNI")
+                return
+            
+            # Añadir huésped
+            huesped = {
+                'nombre': nombre,
+                'apellidos': apellidos,
+                'correoElectronico': email,
+                'DNI': dni
+            }
+            self.checkin_data['huespedes'].append(huesped)
+            
+            # Actualizar UI
+            self._actualizar_lista_huespedes_checkin()
+            self._limpiar_formulario_checkin()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al añadir huésped: {str(e)}")
+    
+    def _actualizar_lista_huespedes_checkin(self):
+        """Actualiza la visualización de la lista de huéspedes"""
+        try:
+            # Limpiar lista
+            for widget in self.checkin_lista_scroll.winfo_children():
+                widget.destroy()
+            
+            # Actualizar título
+            huespedes_count = len(self.checkin_data['huespedes'])
+            total = huespedes_count + 1  # +1 por el cliente que paga
+            capacidad = self.checkin_data['capacidad']
+            
+            self.checkin_lista_title_label.configure(
+                text=f"📋 Huéspedes Añadidos ({huespedes_count}) - Total: {total}/{capacidad}"
+            )
+            
+            # Cliente que paga (info)
+            cliente_frame = ctk.CTkFrame(self.checkin_lista_scroll, corner_radius=8, fg_color=("#E8F5E9", "#1B5E20"))
+            cliente_frame.pack(fill="x", pady=2, padx=5)
+            
+            info_label = ctk.CTkLabel(
+                cliente_frame,
+                text="👤 Cliente que paga (se añade automáticamente)",
+                font=ctk.CTkFont(size=11),
+                text_color=("#2E7D32", "#A5D6A7")
+            )
+            info_label.pack(pady=8, padx=10)
+            
+            # Mostrar huéspedes
+            for idx, huesped in enumerate(self.checkin_data['huespedes']):
+                huesped_frame = ctk.CTkFrame(self.checkin_lista_scroll, corner_radius=8)
+                huesped_frame.pack(fill="x", pady=2, padx=5)
+                
+                # Info del huésped
+                info_frame = ctk.CTkFrame(huesped_frame, fg_color="transparent")
+                info_frame.pack(side="left", fill="both", expand=True, padx=10, pady=8)
+                
+                nombre_label = ctk.CTkLabel(
+                    info_frame,
+                    text=f"👤 {huesped['nombre']} {huesped['apellidos']}",
+                    font=ctk.CTkFont(size=12, weight="bold")
+                )
+                nombre_label.pack(anchor="w")
+                
+                detalles_label = ctk.CTkLabel(
+                    info_frame,
+                    text=f"DNI: {huesped['DNI']} | Email: {huesped['correoElectronico']}",
+                    font=ctk.CTkFont(size=10),
+                    text_color="gray"
+                )
+                detalles_label.pack(anchor="w")
+                
+                # Botón eliminar
+                btn_eliminar = ctk.CTkButton(
+                    huesped_frame,
+                    text="🗑️",
+                    width=40,
+                    command=lambda i=idx: self._eliminar_huesped_checkin(i),
+                    fg_color=("#E74C3C", "#C0392B"),
+                    hover_color=("#C0392B", "#A93226")
+                )
+                btn_eliminar.pack(side="right", padx=5)
+                
+        except Exception as e:
+            print(f"Error actualizando lista: {e}")
+    
+    def _eliminar_huesped_checkin(self, index: int):
+        """Elimina un huésped de la lista temporal"""
+        try:
+            if messagebox.askyesno("Confirmar", "¿Eliminar este huésped?"):
+                del self.checkin_data['huespedes'][index]
+                self._actualizar_lista_huespedes_checkin()
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al eliminar huésped: {str(e)}")
+    
+    def _limpiar_formulario_checkin(self):
+        """Limpia los campos del formulario de check-in"""
+        try:
+            self.checkin_nombre_entry.delete(0, 'end')
+            self.checkin_apellidos_entry.delete(0, 'end')
+            self.checkin_email_entry.delete(0, 'end')
+            self.checkin_dni_entry.delete(0, 'end')
+        except Exception as e:
+            print(f"Error limpiando formulario: {e}")
+    
+    def _realizar_checkin_final(self):
+        """Realiza el check-in final con todos los huéspedes añadidos"""
+        try:
+            reserva = self.checkin_data['reserva']
+            numero_hab = self.checkin_data['numero_hab']
+            huespedes_lista = self.checkin_data['huespedes']
+            
+            # Hacer check-in con número de habitación y huéspedes
+            checkin_payload = {
+                "numeroHabitacion": numero_hab,
+                "huespedes": huespedes_lista
+            }
+            
+            checkin_response = self.api_client.post(
+                f"reservas/{reserva.id_reserva}/checkin",
+                checkin_payload
+            )
+            
+            if not checkin_response.success:
+                messagebox.showerror(
+                    "Error",
+                    f"Error al hacer check-in: {checkin_response.error}"
+                )
+                return
+            
+            # Éxito - mostrar en consola sin popup
+            print(f"✅ Check-in realizado correctamente")
+            print(f"📍 Habitación: {numero_hab}")
+            print(f"👥 Huéspedes registrados: {len(huespedes_lista)} + 1 (titular)")
+            print(f"🏨 Tipo: {self.checkin_data['categoria']}")
+            
+            messagebox.showinfo(
+                "Éxito",
+                f"✅ Check-in realizado correctamente\n"
+                f"📍 Habitación: {numero_hab}\n"
+                f"👥 Huéspedes registrados: {len(huespedes_lista)} + 1 (titular)\n"
+                f"🏨 Tipo: {self.checkin_data['categoria']}"
+            )
+            
+            # Volver a la búsqueda de reservas
+            self._mostrar_buscar_reservas()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al realizar check-in: {str(e)}")

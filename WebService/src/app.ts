@@ -10,6 +10,7 @@ import pernoctacionRoutes from './api/pernoctacion.routes';
 import servicioRoutes from './api/servicio.routes';
 import regimenRoutes from './api/regimen.routes';
 import tipoHabitacionRoutes from './api/tipoHabitacion.routes';
+import habitacionRoutes from './api/habitacion.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -38,6 +39,7 @@ app.use('/api/pernoctaciones', pernoctacionRoutes);
 app.use('/api/servicios', servicioRoutes);
 app.use('/api/regimenes', regimenRoutes);
 app.use('/api/tipos-habitacion', tipoHabitacionRoutes);
+app.use('/api/habitaciones', habitacionRoutes);
 
 // Default route
 app.get('/', (req: Request, res: Response) => {
@@ -77,8 +79,6 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 app.listen(port, () => {
-  console.log(`⚡️ [server]: Servidor corriendo en http://localhost:${port}`);
-  console.log(`📊 [prisma]: Usando Prisma ORM con MySQL`);
-  console.log(`📖 [docs]: Visita /health para ver los endpoints disponibles`);
+  // Server started - console logs disabled for backend
 });
 

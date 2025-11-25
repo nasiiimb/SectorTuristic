@@ -115,6 +115,7 @@ model Reserva {
   fechaSalida       DateTime            @db.Date
   canalReserva      String?             @db.VarChar(50)
   tipo              TipoReserva
+  estado            EstadoReserva       @default(Activa)
   idCliente_paga    Int
   idPrecioRegimen   Int
   clientePaga       Cliente             @relation("ClientePaga", fields: [idCliente_paga], references: [idCliente], onDelete: Restrict)
@@ -131,6 +132,11 @@ model Reserva {
 enum TipoReserva {
   Reserva
   Walkin
+}
+
+enum EstadoReserva {
+  Activa
+  Cancelada
 }
 
 model Pernoctacion {

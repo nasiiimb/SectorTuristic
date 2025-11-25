@@ -5,50 +5,37 @@
 - **Puerto**: 3000
 - Asegúrate de que el servidor esté corriendo: `npm run dev`
 
+⚠️ **IMPORTANTE: Todas las rutas están en PLURAL**
+- ✅ `/api/reservas` (correcto)
+- ❌ `/api/reserva` (incorrecto)
+- ✅ `/api/hoteles` (correcto)
+- ✅ `/api/contratos` (correcto)
+
 ---
 
 ## 🔄 Flujo Completo: Disponibilidad → Reserva → Check-in → Check-out
 
-### 1️⃣ Consultar Disponibilidad de Habitaciones
+### 1️⃣ Consultar Disponibilidad de Habitaciones por Ciudad
 
 **Endpoint**: `GET /disponibilidad`
 
 **Query Parameters**:
 - `fechaEntrada`: `2024-12-01`
 - `fechaSalida`: `2024-12-05`
-- `idHotel`: `1`
-- `idTipoHabitacion`: `1`
+- `ciudad`: `Palma`
 
 **URL Completa**:
 ```
-http://localhost:3000/api/disponibilidad?fechaEntrada=2024-12-01&fechaSalida=2024-12-05&idHotel=1&idTipoHabitacion=1
+http://localhost:3000/api/disponibilidad?fechaEntrada=2024-12-01&fechaSalida=2024-12-05&ciudad=Palma
 ```
 
-**Respuesta Esperada** (200 OK):
-```json
-{
-  "disponible": true,
-  "habitacionesDisponibles": [
-    "101",
-    "102",
-    "103"
-  ],
-  "totalDisponibles": 3,
-  "detalles": {
-    "fechaEntrada": "2024-12-01",
-    "fechaSalida": "2024-12-05",
-    "noches": 4,
-    "hotel": "Hotel Paraíso",
-    "tipoHabitacion": "Doble"
-  }
-}
-```
+**Nota**: La respuesta muestra **todos los hoteles de Palma** que tienen disponibilidad en esas fechas.
 
 ---
 
 ### 2️⃣ Crear una Reserva
 
-**Endpoint**: `POST /reservas`
+**Endpoint**: `POST /reservas` ⚠️ **(Nota: plural "reservas", no "reserva")**
 
 **Headers**:
 ```
@@ -62,8 +49,10 @@ Content-Type: application/json
   "fechaSalida": "2024-12-05",
   "canalReserva": "Web",
   "tipo": "Reserva",
-  "idPrecioRegimen": 1,
-  "cliente": {
+  "hotel": "Gran Hotel del Mar",
+  "tipoHabitacion": "Doble Superior",
+  "regimen": "AD",
+  "clientePaga": {
     "nombre": "María",
     "apellidos": "García López",
     "correoElectronico": "maria.garcia@example.com",
@@ -77,77 +66,32 @@ Content-Type: application/json
       "correoElectronico": "maria.garcia@example.com",
       "DNI": "12345678A"
     }
-  ],
-  "pernoctaciones": [
-    {
-      "fechaPernoctacion": "2024-12-01",
-      "idTipoHabitacion": 1
-    },
-    {
-      "fechaPernoctacion": "2024-12-02",
-      "idTipoHabitacion": 1
-    },
-    {
-      "fechaPernoctacion": "2024-12-03",
-      "idTipoHabitacion": 1
-    },
-    {
-      "fechaPernoctacion": "2024-12-04",
-      "idTipoHabitacion": 1
-    }
   ]
 }
 ```
 
-**Respuesta Esperada** (201 Created):
-```json
-{
-  "idReserva": 10,
-  "fechaEntrada": "2024-12-01T00:00:00.000Z",
-  "fechaSalida": "2024-12-05T00:00:00.000Z",
-  "canalReserva": "Web",
-  "tipo": "Reserva",
-  "idCliente_paga": 6,
-  "idPrecioRegimen": 1,
-  "clientePaga": {
-    "idCliente": 6,
-    "nombre": "María",
-    "apellidos": "García López",
-    "correoElectronico": "maria.garcia@example.com",
-    "DNI": "12345678A"
-  },
-  "pernoctaciones": [
-    {
-      "idPernoctacion": 40,
-      "fechaPernoctacion": "2024-12-01T00:00:00.000Z",
-      "idTipoHabitacion": 1
-    },
-    {
-      "idPernoctacion": 41,
-      "fechaPernoctacion": "2024-12-02T00:00:00.000Z",
-      "idTipoHabitacion": 1
-    },
-    {
-      "idPernoctacion": 42,
-      "fechaPernoctacion": "2024-12-03T00:00:00.000Z",
-      "idTipoHabitacion": 1
-    },
-    {
-      "idPernoctacion": 43,
-      "fechaPernoctacion": "2024-12-04T00:00:00.000Z",
-      "idTipoHabitacion": 1
-    }
-  ]
-}
-```
+**Notas importantes**: 
+- `hotel`: Nombre del hotel (ej: "Gran Hotel del Mar")
+- `tipoHabitacion`: Nombre del tipo de habitación (ej: "Doble Superior")
+- `regimen`: Código del régimen (ej: "AD" para Alojamiento y Desayuno)
+- `clientePaga`: Objeto con los datos del cliente que paga
+- `huespedes`: Array con los datos de los huéspedes (puede incluir al cliente que paga)
+- **Códigos de régimen disponibles**: SA, AD, MP, PC, TI
 
-**⚠️ IMPORTANTE**: Anota el `idReserva` que te devuelve (ej: 10), lo necesitarás para los siguientes pasos.
+**⚠️ IMPORTANTE**: Anota el `idReserva` que te devuelve la respuesta, lo necesitarás para los siguientes pasos.
 
 ---
 
-### 3️⃣ Hacer Check-in (Crear Contrato)
 
-**Endpoint**: `POST /contratos`
+### 4️⃣ Hacer Check-in
+
+**Endpoint**: `POST /reservas/:idReserva/checkin`
+
+**URL**: 
+```
+http://localhost:3000/api/reservas/1/checkin
+```
+*(Reemplaza `1` con el idReserva que obtuviste)*
 
 **Headers**:
 ```
@@ -157,54 +101,24 @@ Content-Type: application/json
 **Body (raw JSON)**:
 ```json
 {
-  "idReserva": 10,
-  "numeroHabitacion": "101",
-  "montoTotal": 400.00
+  "numeroHabitacion": "H1-101"
 }
 ```
 
-**Respuesta Esperada** (201 Created):
-```json
-{
-  "idContrato": 5,
-  "montoTotal": 400,
-  "fechaCheckIn": "2024-10-30T12:45:30.123Z",
-  "fechaCheckOut": null,
-  "idReserva": 10,
-  "numeroHabitacion": "101",
-  "reserva": {
-    "idReserva": 10,
-    "fechaEntrada": "2024-12-01T00:00:00.000Z",
-    "fechaSalida": "2024-12-05T00:00:00.000Z",
-    "tipo": "Reserva",
-    "clientePaga": {
-      "nombre": "María",
-      "apellidos": "García López",
-      "correoElectronico": "maria.garcia@example.com"
-    }
-  },
-  "habitacion": {
-    "numeroHabitacion": "101",
-    "tipoHabitacion": {
-      "categoria": "Doble"
-    }
-  }
-}
-```
-
-**⚠️ IMPORTANTE**: Anota el `idContrato` que te devuelve (ej: 5), lo necesitarás para el checkout.
+**Nota**: El check-in registra la fecha y hora de entrada del cliente usando la zona horaria del país donde está ubicado el hotel.
 
 ---
 
-### 4️⃣ Hacer Check-out (Finalizar Estancia)
 
-**Endpoint**: `PUT /contratos/:idContrato/checkout`
+### 5️⃣ Hacer Check-out (Finalizar Estancia)
+
+**Endpoint**: `POST /contratos/:idContrato/checkout`
 
 **URL**: 
 ```
-http://localhost:3000/api/contratos/5/checkout
+http://localhost:3000/api/contratos/1/checkout
 ```
-*(Reemplaza `5` con el idContrato que obtuviste en el paso anterior)*
+*(Reemplaza `1` con el idContrato que obtuviste en el paso anterior)*
 
 **Headers**:
 ```
@@ -213,36 +127,11 @@ Content-Type: application/json
 
 **Body**: *(vacío o sin body)*
 
-**Respuesta Esperada** (200 OK):
-```json
-{
-  "message": "Check-out realizado exitosamente",
-  "contrato": {
-    "idContrato": 5,
-    "montoTotal": 400,
-    "fechaCheckIn": "2024-10-30T12:45:30.123Z",
-    "fechaCheckOut": "2024-10-30T13:00:15.456Z",
-    "idReserva": 10,
-    "numeroHabitacion": "101",
-    "reserva": {
-      "idReserva": 10,
-      "fechaEntrada": "2024-12-01T00:00:00.000Z",
-      "fechaSalida": "2024-12-05T00:00:00.000Z",
-      "clientePaga": {
-        "nombre": "María",
-        "apellidos": "García López",
-        "correoElectronico": "maria.garcia@example.com"
-      }
-    }
-  }
-}
-```
-
 ---
 
 ## 📊 Endpoints Adicionales para el Video (Opcionales)
 
-### 5️⃣ Ver Detalles de la Reserva
+### 6️⃣ Ver Detalles de la Reserva
 
 **Endpoint**: `GET /reservas/:idReserva`
 
@@ -250,12 +139,11 @@ Content-Type: application/json
 ```
 http://localhost:3000/api/reservas/10
 ```
-
-**Respuesta**: Detalles completos de la reserva con cliente, pernoctaciones, etc.
+*(Reemplaza `10` con el idReserva que obtuviste)*
 
 ---
 
-### 6️⃣ Listar Todos los Hoteles
+### 7️⃣ Listar Todos los Hoteles
 
 **Endpoint**: `GET /hoteles`
 
@@ -264,11 +152,9 @@ http://localhost:3000/api/reservas/10
 http://localhost:3000/api/hoteles
 ```
 
-**Respuesta**: Lista de todos los hoteles con sus ciudades.
-
 ---
 
-### 7️⃣ Ver Tipos de Habitación de un Hotel
+### 8️⃣ Ver Tipos de Habitación de un Hotel
 
 **Endpoint**: `GET /hoteles/:idHotel/tiposHabitacion`
 
@@ -277,19 +163,18 @@ http://localhost:3000/api/hoteles
 http://localhost:3000/api/hoteles/1/tiposHabitacion
 ```
 
-**Respuesta**: Tipos de habitación disponibles en el hotel.
-
 ---
 
 ## 🎯 Orden Recomendado para el Video
 
 1. **Mostrar hoteles disponibles** → `GET /hoteles`
-2. **Consultar disponibilidad** → `GET /disponibilidad` (fechas 2024-12-01 a 2024-12-05)
+2. **Consultar disponibilidad por ciudad** → `GET /disponibilidad?ciudad=Palma&fechaEntrada=2024-12-01&fechaSalida=2024-12-05`
 3. **Crear reserva** → `POST /reservas` (guarda el idReserva)
 4. **Ver detalles de la reserva** → `GET /reservas/:idReserva`
-5. **Hacer check-in** → `POST /contratos` (guarda el idContrato)
-6. **Hacer check-out** → `PUT /contratos/:idContrato/checkout`
-7. **Verificar contrato finalizado** → `GET /contratos/:idContrato`
+5. **Crear contrato** → `POST /contratos` (guarda el idContrato)
+6. **Hacer check-in** → `POST /reservas/:idReserva/checkin`
+7. **Hacer check-out** → `PUT /contratos/:idContrato/checkout`
+8. **Verificar contrato finalizado** → `GET /contratos/:idContrato`
 
 ---
 
@@ -305,8 +190,9 @@ http://localhost:3000/api/hoteles/1/tiposHabitacion
 
 ## 🚨 Posibles Errores y Soluciones
 
-### Error 404 - Hotel/Habitación no encontrado
-- Verifica que `idHotel: 1` y `idTipoHabitacion: 1` existan en tu BD
+### Error 404 - Hotel/Ciudad no encontrada
+- Verifica que la ciudad "Palma" exista en tu BD
+- Prueba con otras ciudades: "Barcelona", "Madrid", etc.
 
 ### Error 409 - Conflicto (email duplicado)
 - Cambia el email del cliente en cada prueba: `maria.garcia2@example.com`
@@ -315,11 +201,113 @@ http://localhost:3000/api/hoteles/1/tiposHabitacion
 - Revisa que las fechas estén en formato `YYYY-MM-DD`
 - Asegúrate de que `fechaSalida > fechaEntrada`
 - Verifica que el tipo sea `"Reserva"` o `"Walkin"` (exacto)
+- Asegúrate de proporcionar al menos un filtro: `ciudad`, `hotel` o `pais`
 
 ---
 
 ## 📁 Importar a Postman
 
 Puedes importar esta colección creando un archivo JSON en Postman o copiando cada endpoint manualmente.
+
+---
+
+## 🎯 EJEMPLO ADICIONAL: Segundo Cliente (Carlos Martínez)
+
+### 📝 Reserva para Carlos Martínez
+
+**Endpoint**: `POST /reservas`
+
+**Body**:
+```json
+{
+  "fechaEntrada": "2024-12-10",
+  "fechaSalida": "2024-12-15",
+  "canalReserva": "Booking",
+  "tipo": "Reserva",
+  "hotel": "Hotel Palma Centro",
+  "tipoHabitacion": "Individual",
+  "regimen": "MP",
+  "clientePaga": {
+    "nombre": "Carlos",
+    "apellidos": "Martínez Ruiz",
+    "correoElectronico": "carlos.martinez@example.com",
+    "DNI": "87654321B",
+    "fechaDeNacimiento": "1985-08-22"
+  },
+  "huespedes": [
+    {
+      "nombre": "Carlos",
+      "apellidos": "Martínez Ruiz",
+      "correoElectronico": "carlos.martinez@example.com",
+      "DNI": "87654321B"
+    }
+  ]
+}
+```
+
+**Detalles**:
+- Hotel: Hotel Palma Centro (4 estrellas)
+- Tipo: Individual
+- Régimen: MP (Media Pensión)
+- Fechas: Del 10 al 15 de diciembre (5 noches)
+
+**⚠️ Anota el `idReserva` de la respuesta**
+
+---
+
+### 🏨 Crear Contrato para Carlos Martínez
+
+**Endpoint**: `POST /contratos`
+
+**Body**:
+```json
+{
+  "idReserva": 2,
+  "numeroHabitacion": "201",
+  "montoTotal": 575.00
+}
+```
+
+**Cálculo del monto**:
+- Habitación Individual: 80.00€ x 5 noches = 400.00€
+- Régimen MP (Media Pensión): 35.00€ x 5 noches = 175.00€
+- **Total: 575.00€**
+
+**⚠️ Anota el `idContrato` de la respuesta**
+
+---
+
+### ✅ Check-in para Carlos Martínez
+
+**Endpoint**: `POST /reservas/:idReserva/checkin`
+
+**URL**:
+```
+http://localhost:3000/api/reservas/2/checkin
+```
+*(Reemplaza `2` con el idReserva real que obtuviste)*
+
+**Body**:
+```json
+{
+  "numeroHabitacion": "201"
+}
+```
+
+---
+
+### 🚪 Check-out para Carlos Martínez
+
+**Endpoint**: `PUT /contratos/2/checkout`
+
+**URL**:
+```
+http://localhost:3000/api/contratos/2/checkout
+```
+*(Reemplaza `2` con el idContrato real que obtuviste)*
+
+**Body**: *(vacío)*
+
+---
 
 **¡Buena suerte con tu video! 🎥**

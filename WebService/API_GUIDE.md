@@ -378,6 +378,47 @@ GET /regimenes
 
 ---
 
+### Obtener regímenes de un hotel con precios
+
+```http
+GET /regimenes/hotel/:idHotel
+```
+
+**Parámetros:**
+- `idHotel` (número): ID del hotel
+
+**Respuesta:**
+```json
+{
+  "hotel": {
+    "idHotel": 1,
+    "nombre": "Hotel Paraíso",
+    "ubicacion": "Playa de Palma",
+    "ciudad": "Palma"
+  },
+  "regimenes": [
+    {
+      "idPrecioRegimen": 1,
+      "regimen": {
+        "idRegimen": 1,
+        "codigo": "AD"
+      },
+      "precio": 100.00
+    },
+    {
+      "idPrecioRegimen": 2,
+      "regimen": {
+        "idRegimen": 2,
+        "codigo": "MP"
+      },
+      "precio": 120.00
+    }
+  ]
+}
+```
+
+---
+
 ### Obtener régimen por ID
 
 ```http
@@ -737,62 +778,134 @@ DELETE /reservas/:id
 
 ## 🔍 Disponibilidad
 
-### Consultar disponibilidad
+### Consultar disponibilidad por ciudad
 
 ```http
 GET /disponibilidad
 ```
 
-**Query Parameters (obligatorios):**
-- `fechaEntrada` - Fecha de entrada (YYYY-MM-DD)
-- `fechaSalida` - Fecha de salida (YYYY-MM-DD)
-- `idHotel` - ID del hotel
-- `idTipoHabitacion` - ID del tipo de habitación
+**Query Parameters:**
+- `fechaEntrada` - Fecha de entrada (YYYY-MM-DD) **[Obligatorio]**
+- `fechaSalida` - Fecha de salida (YYYY-MM-DD) **[Obligatorio]**
+- `ciudad` - Nombre de la ciudad **[Al menos uno obligatorio]**
+- `hotel` - Nombre del hotel **[Al menos uno obligatorio]**
+- `pais` - Nombre del país **[Al menos uno obligatorio]**
 
-**Ejemplo:**
+**Nota**: Debes proporcionar al menos un filtro de ubicación (`ciudad`, `hotel` o `pais`).
+
+**Ejemplo por ciudad:**
 ```http
-GET /disponibilidad?fechaEntrada=2024-12-01&fechaSalida=2024-12-05&idHotel=1&idTipoHabitacion=1
+GET /disponibilidad?fechaEntrada=2024-12-01&fechaSalida=2024-12-05&ciudad=Palma
 ```
 
-**Respuesta:**
+**Ejemplo por hotel:**
+```http
+GET /disponibilidad?fechaEntrada=2024-12-01&fechaSalida=2024-12-05&hotel=Paraíso
+```
+
+**Respuesta (búsqueda por ciudad):**
+```json
+[
+  {
+    "idHotel": 1,
+    "nombre": "Hotel Paraíso",
+    "ubicacion": "Playa de Palma",
+    "categoria": 5,
+    "ciudad": {
+      "idCiudad": 1,
+      "nombre": "Palma",
+      "pais": "España"
+    },
+    "tiposDisponibles": [
+      {
+        "idTipoHabitacion": 1,
+        "categoria": "Doble",
+        "camasIndividuales": 0,
+        "camasDobles": 1,
+        "precioPorNoche": 100.00,
+        "codigoTarifa": "ESTANDAR",
+        "disponibles": 5,
+        "totalHabitaciones": 8,
+        "reservasActuales": 3
+      },
+      {
+        "idTipoHabitacion": 2,
+        "categoria": "Suite",
+        "camasIndividuales": 0,
+        "camasDobles": 1,
+        "precioPorNoche": 200.00,
+        "codigoTarifa": "PREMIUM",
+        "disponibles": 2,
+        "totalHabitaciones": 4,
+        "reservasActuales": 2
+      }
+    ],
+    "totalTiposDisponibles": 2
+  },
+  {
+    "idHotel": 2,
+    "nombre": "Hotel Marina",
+    "ubicacion": "Puerto de Palma",
+    "categoria": 4,
+    "ciudad": {
+      "idCiudad": 1,
+      "nombre": "Palma",
+      "pais": "España"
+    },
+    "tiposDisponibles": [
+      {
+        "idTipoHabitacion": 1,
+        "categoria": "Doble",
+        "camasIndividuales": 0,
+        "camasDobles": 1,
+        "precioPorNoche": 90.00,
+        "codigoTarifa": "ESTANDAR",
+        "disponibles": 10,
+        "totalHabitaciones": 12,
+        "reservasActuales": 2
+      }
+    ],
+    "totalTiposDisponibles": 1
+  }
+]
+```
+
+**Respuesta (búsqueda por hotel específico):**
 ```json
 {
-  "disponible": true,
-  "habitacionesDisponibles": [
-    "101",
-    "102",
-    "103"
+  "hotel": {
+    "nombre": "Hotel Paraíso",
+    "ubicacion": "Playa de Palma",
+    "categoria": 5,
+    "ciudad": "Palma",
+    "pais": "España"
+  },
+  "tiposDisponibles": [
+    {
+      "idTipoHabitacion": 1,
+      "categoria": "Doble",
+      "camasIndividuales": 0,
+      "camasDobles": 1,
+      "precioPorNoche": 100.00,
+      "codigoTarifa": "ESTANDAR",
+      "disponibles": 5,
+      "totalHabitaciones": 8,
+      "reservasActuales": 3
+    }
   ],
-  "totalDisponibles": 3,
-  "detalles": {
-    "fechaEntrada": "2024-12-01",
-    "fechaSalida": "2024-12-05",
-    "noches": 4,
-    "hotel": "Hotel Paraíso",
-    "tipoHabitacion": "Doble"
-  }
+  "totalTiposDisponibles": 1
 }
 ```
 
 **Caso sin disponibilidad:**
 ```json
-{
-  "disponible": false,
-  "habitacionesDisponibles": [],
-  "totalDisponibles": 0,
-  "detalles": {
-    "fechaEntrada": "2024-12-01",
-    "fechaSalida": "2024-12-05",
-    "noches": 4,
-    "hotel": "Hotel Paraíso",
-    "tipoHabitacion": "Doble"
-  }
-}
+[]
 ```
+(Array vacío cuando se busca por ciudad/país y no hay hoteles con disponibilidad)
 
 **Errores:**
 - `400` - Parámetros faltantes o fechas inválidas
-- `404` - Hotel o tipo de habitación no encontrado
+- `404` - Hotel o ciudad no encontrada
 
 ---
 

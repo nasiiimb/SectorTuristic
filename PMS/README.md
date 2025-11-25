@@ -1,19 +1,19 @@
-# 🏨 PMS - Property Management System
+# PMS - Property Management System
 
-Sistema de Gestión Hotelera con **Clean Architecture** y **Principios SOLID**
+Sistema de Gestión Hotelera con Clean Architecture y Principios SOLID
 
-## 📋 Descripción
+## Descripción
 
-El PMS (Property Management System) es una aplicación de **escritorio moderna con interfaz gráfica** que permite a los empleados de la cadena hotelera (recepcionistas, personal de reservas, etc.) gestionar:
+El PMS (Property Management System) es una aplicación de escritorio moderna con interfaz gráfica que permite a los empleados de la cadena hotelera (recepcionistas, personal de reservas, etc.) gestionar:
 
 - **Clientes**: Altas, modificaciones, búsquedas y consultas
 - **Reservas**: Crear, modificar, cancelar reservas, check-in/check-out
-- **Operaciones**: Gestión de contratos y disponibilidad
-- **Consultas**: Hoteles, tipos de habitación, regímenes, ciudades, contratos
+- **Contratos**: Gestión de contratos activos y finalizados
+- **Consultas**: Hoteles, tipos de habitación, regímenes, ciudades, disponibilidad
 
-## ✨ Características de la Interfaz Moderna
+## Características de la Interfaz
 
-### 🎨 Diseño Profesional
+### Diseño Profesional
 - **Framework**: CustomTkinter 5.2.0 (Material Design-inspired)
 - **Tema**: Dark mode profesional
 - **Colores**: Paleta turquesa/verde azulado (#2B7A78)
@@ -21,12 +21,12 @@ El PMS (Property Management System) es una aplicación de **escritorio moderna c
 - **Componentes**: Botones redondeados, sombras, efectos hover
 - **UX**: Layout responsive, tablas scrollables, selección por click
 
-### 🖼️ Componentes Visuales
-- **Main Window**: Header profesional con gradiente + Footer informativo
-- **Tabs**: Sistema de pestañas moderno (Clientes, Reservas, Consultas)
-- **Formularios**: Inputs con placeholders, validación visual
-- **Tablas**: Filas alternadas, colores semánticos, auto-scroll
-- **Botones**: Iconos emoji + colores por acción (verde=crear, azul=editar, rojo=eliminar)
+### Componentes Visuales
+- **Ventana Principal**: Header profesional con gradiente y footer informativo
+- **Pestañas**: Sistema de navegación moderno (Clientes, Reservas, Consultas)
+- **Formularios**: Campos con validación visual en tiempo real
+- **Tablas**: Filas alternadas con colores semánticos y scroll automático
+- **Botones**: Iconos visuales con colores por acción (verde=crear, azul=editar, rojo=eliminar)
 
 ## 🏗️ Arquitectura
 
@@ -122,69 +122,183 @@ PMS/
         └── validators.py   # Input validators
 ```
 
-## 🚀 Instalación
+## Tutorial Completo: Cómo Lanzar Todo el Sistema
+
+Este tutorial te guiará paso a paso para poner en marcha todo el sistema PMS desde cero.
 
 ### Requisitos Previos
 
-- **Python 3.9+** instalado
-- **WebService** ejecutándose en `http://localhost:3000`
-- **MySQL** con base de datos `pms_database`
+Antes de comenzar, asegúrate de tener instalado:
 
-### Paso 1: Instalar dependencias
+1. **Node.js** (versión 18 o superior)
+   - Descargar de: https://nodejs.org/
+   - Verificar instalación: `node --version`
 
-Abre una terminal en la carpeta `PMS` y ejecuta:
+2. **Python 3.9+**
+   - Descargar de: https://www.python.org/downloads/
+   - Verificar instalación: `python --version` o `python3 --version`
 
+3. **MySQL Server** (versión 8.0 o superior)
+   - Descargar de: https://dev.mysql.com/downloads/mysql/
+   - Asegúrate de recordar el usuario y contraseña de root
+   - La base de datos debe llamarse: **PMS54870695D** (PMS + NIF del alumno)
+
+### PASO 1: Configurar la Base de Datos
+
+La base de datos debe llamarse **PMS54870695D** (PMS + NIF del alumno).
+
+1. Abre una terminal o símbolo del sistema
+
+2. Navega a la carpeta BD:
+   ```bash
+   cd "C:\UIB\Solucions Turistiques\practica\SectorTuristic\BD"
+   ```
+
+3. Ejecuta el script de creación de base de datos:
+   
+   **En Windows:**
+   ```bash
+   crear_bd.bat
+   ```
+   
+   **En Linux/Mac:**
+   ```bash
+   mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS PMS54870695D CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+   mysql -u root -p PMS54870695D < dump.sql
+   mysql -u root -p PMS54870695D < insert.sql
+   ```
+
+4. Verifica que la base de datos se haya creado correctamente:
+   ```bash
+   mysql -u root -p
+   ```
+   Luego ejecuta:
+   ```sql
+   USE PMS54870695D;
+   SHOW TABLES;
+   EXIT;
+   ```
+
+### PASO 2: Configurar y Lanzar el WebService
+
+1. Abre una terminal y navega a la carpeta WebService:
+   ```bash
+   cd "C:\UIB\Solucions Turistiques\practica\SectorTuristic\WebService"
+   ```
+
+2. Instala las dependencias de Node.js (solo la primera vez):
+   ```bash
+   npm install
+   ```
+   Este comando instalará todas las librerías necesarias definidas en package.json.
+
+3. Configura la conexión a la base de datos:
+   
+   Abre el archivo `.env` en la carpeta WebService y verifica/modifica:
+   ```
+   DATABASE_URL="mysql://root:tu_password@localhost:3306/PMS54870695D"
+   PORT=3000
+   ```
+   Reemplaza `tu_password` con la contraseña de MySQL que configuraste.
+   
+   **IMPORTANTE**: El nombre de la base de datos debe ser **PMS54870695D** (PMS + NIF del alumno).
+
+4. Sincroniza el esquema de base de datos con Prisma:
+   ```bash
+   npx prisma generate
+   ```
+
+5. Inicia el servidor:
+   ```bash
+   npm run dev
+   ```
+
+6. Si todo está correcto, verás:
+   ```
+   Servidor corriendo en http://localhost:3000
+   Base de datos conectada
+   ```
+
+   **IMPORTANTE**: Mantén esta terminal abierta mientras uses el PMS. El WebService debe estar ejecutándose todo el tiempo.
+
+### PASO 3: Configurar y Lanzar el PMS
+
+1. Abre una **NUEVA** terminal (el WebService debe seguir ejecutándose en la otra)
+
+2. Navega a la carpeta PMS:
+   ```bash
+   cd "C:\UIB\Solucions Turistiques\practica\SectorTuristic\PMS"
+   ```
+
+3. Instala las dependencias de Python (solo la primera vez):
+   ```bash
+   pip install -r requirements.txt
+   ```
+   
+   Si usas Python 3 explícitamente:
+   ```bash
+   python3 -m pip install -r requirements.txt
+   ```
+
+4. Verifica que el WebService esté corriendo:
+   
+   Abre tu navegador y visita: http://localhost:3000/api/hoteles
+   
+   Deberías ver una respuesta JSON con la lista de hoteles.
+
+5. Inicia la aplicación PMS:
+   ```bash
+   python main.py
+   ```
+   
+   O en algunos sistemas:
+   ```bash
+   python3 main.py
+   ```
+
+6. La interfaz gráfica del PMS se abrirá automáticamente.
+
+### Resumen de Terminales Necesarias
+
+Para que el sistema funcione completamente, necesitas tener abiertas:
+
+**Terminal 1 - WebService:**
 ```bash
-pip install -r requirements.txt
-```
-
-Esto instalará:
-- `requests==2.31.0` - Para peticiones HTTP al WebService
-- `colorama==0.4.6` - Para colores en consola
-- `tabulate==0.9.0` - Para tablas formateadas
-- `python-dateutil==2.8.2` - Para manejo de fechas
-- `customtkinter==5.2.0` - Framework moderno de UI
-- `Pillow==10.0.0` - Soporte de imágenes para CustomTkinter
-- `setuptools` - Herramientas de empaquetado Python
-
-### Paso 2: Verificar que el WebService esté corriendo
-
-Antes de ejecutar el PMS, asegúrate de que el WebService esté activo:
-
-```bash
-# En otra terminal, navega a la carpeta WebService
-cd ../WebService
-
-# Ejecuta el servidor
+cd "C:\UIB\Solucions Turistiques\practica\SectorTuristic\WebService"
 npm run dev
 ```
 
-Deberías ver:
-```
-🚀 Servidor corriendo en http://localhost:3000
-```
-
-## ▶️ Ejecución
-
+**Terminal 2 - PMS:**
 ```bash
+cd "C:\UIB\Solucions Turistiques\practica\SectorTuristic\PMS"
 python main.py
 ```
 
-O en algunos sistemas:
+### Verificación del Sistema
 
-```bash
-python3 main.py
-```
+Una vez todo esté ejecutándose, verifica:
 
-## 📖 Guía de Uso
+1. **WebService**: http://localhost:3000/api/hoteles debe devolver datos
+2. **Base de datos**: MySQL debe estar corriendo
+3. **PMS**: La ventana gráfica debe aparecer con las pestañas Clientes, Reservas y Consultas
 
-### Menú Principal
+## Instalación Rápida (Para Desarrollo)
 
-Al iniciar la aplicación, verás el menú principal con 3 opciones:
+Si ya has configurado todo previamente y solo necesitas iniciar:
 
-1. **👤 Gestión de Clientes**
-2. **📅 Gestión de Reservas**
-3. **📊 Consultas Generales**
+1. Inicia MySQL (si no está como servicio automático)
+2. Terminal 1: `cd WebService && npm run dev`
+3. Terminal 2: `cd PMS && python main.py`
+
+## Guía de Uso
+
+### Interfaz Principal
+
+Al iniciar la aplicación, verás la ventana principal con 3 pestañas:
+
+1. **Gestión de Clientes**
+2. **Gestión de Reservas**
+3. **Consultas Generales**
 
 ### 1. Gestión de Clientes
 
@@ -233,13 +347,13 @@ Permite consultar:
 - **Disponibilidad** por fechas y ubicación
 - **Contratos** activos y finalizados
 
-## 🎨 Características
+## Características Técnicas
 
 ### Interfaz Amigable
-- 🎨 **Colores** para mejor legibilidad
-- 📊 **Tablas formateadas** para datos
-- ✓ **Mensajes de éxito/error** claros
-- ⚠️ **Validaciones** de entrada
+- **Colores semánticos** para mejor legibilidad
+- **Tablas formateadas** para visualización de datos
+- **Mensajes de éxito/error** claros y descriptivos
+- **Validaciones en tiempo real** de entrada de datos
 
 ### Validaciones
 - Fechas en formato correcto (DD/MM/YYYY)
@@ -253,9 +367,9 @@ Permite consultar:
 - Validaciones de negocio
 - Errores inesperados
 
-## 🔧 Configuración
+## Configuración Avanzada
 
-Edita `config.py` para cambiar:
+Edita `src/infrastructure/config.py` para cambiar:
 
 ```python
 # URL del WebService
@@ -269,7 +383,7 @@ DATE_FORMAT = "%Y-%m-%d"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 ```
 
-## 📝 Ejemplos de Uso
+## Ejemplos de Uso
 
 ### Crear una Reserva
 
@@ -299,7 +413,7 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
    - ID Reserva: `1`
    - Habitación: `101`
 
-## 🐛 Solución de Problemas
+## Solución de Problemas
 
 ### Error: "No se pudo conectar al WebService"
 
@@ -325,7 +439,7 @@ pip install -r requirements.txt
 - Usa el formato `DD/MM/YYYY` (ejemplo: `25/12/2024`)
 - Asegúrate de que la fecha de salida sea posterior a la de entrada
 
-## 📚 Endpoints Utilizados
+## Endpoints Utilizados
 
 El PMS consume los siguientes endpoints del WebService:
 
@@ -349,23 +463,23 @@ El PMS consume los siguientes endpoints del WebService:
 | Regímenes | `/api/regimenes` | GET |
 | Ciudades | `/api/ciudades` | GET |
 
-## 👥 Uso Interno
+## Uso Interno
 
 Esta aplicación está diseñada para ser utilizada por:
 - **Recepcionistas** de hoteles
 - **Personal de Central de Reservas**
 - **Gestores de la cadena hotelera**
 
-## 📄 Licencia
+## Licencia
 
 Aplicación de uso interno - Cadena Hotelera
 
-## 🔗 Relacionado
+## Componentes Relacionados
 
-- **WebService**: API REST en Node.js/Express (`../WebService`)
-- **Base de Datos**: MySQL (`../BD`)
+- **WebService**: API REST en Node.js/Express/TypeScript (`../WebService`)
+- **Base de Datos**: MySQL con esquema Prisma (`../BD`)
 
 ---
 
 **Versión:** 1.0.0  
-**Última actualización:** Octubre 2025
+**Última actualización:** Noviembre 2025

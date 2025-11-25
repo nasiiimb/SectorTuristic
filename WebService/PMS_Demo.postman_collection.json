@@ -6,12 +6,12 @@
 	},
 	"item": [
 		{
-			"name": "1. Consultar Disponibilidad",
+			"name": "1. Consultar Disponibilidad por Ciudad",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:3000/api/disponibilidad?fechaEntrada=2024-12-01&fechaSalida=2024-12-05&idHotel=1&idTipoHabitacion=1",
+					"raw": "http://localhost:3000/api/disponibilidad?fechaEntrada=2024-12-01&fechaSalida=2024-12-05&ciudad=Palma",
 					"protocol": "http",
 					"host": ["localhost"],
 					"port": "3000",
@@ -26,16 +26,12 @@
 							"value": "2024-12-05"
 						},
 						{
-							"key": "idHotel",
-							"value": "1"
-						},
-						{
-							"key": "idTipoHabitacion",
-							"value": "1"
+							"key": "ciudad",
+							"value": "Palma"
 						}
 					]
 				},
-				"description": "Verifica disponibilidad de habitaciones para las fechas especificadas"
+				"description": "Verifica disponibilidad de habitaciones en todos los hoteles de Palma para las fechas especificadas"
 			}
 		},
 		{
@@ -50,7 +46,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"fechaEntrada\": \"2024-12-01\",\n  \"fechaSalida\": \"2024-12-05\",\n  \"canalReserva\": \"Web\",\n  \"tipo\": \"Reserva\",\n  \"idPrecioRegimen\": 1,\n  \"cliente\": {\n    \"nombre\": \"María\",\n    \"apellidos\": \"García López\",\n    \"correoElectronico\": \"maria.garcia@example.com\",\n    \"DNI\": \"12345678A\",\n    \"fechaDeNacimiento\": \"1990-05-15\"\n  },\n  \"huespedes\": [\n    {\n      \"nombre\": \"María\",\n      \"apellidos\": \"García López\",\n      \"correoElectronico\": \"maria.garcia@example.com\",\n      \"DNI\": \"12345678A\"\n    }\n  ],\n  \"pernoctaciones\": [\n    {\n      \"fechaPernoctacion\": \"2024-12-01\",\n      \"idTipoHabitacion\": 1\n    },\n    {\n      \"fechaPernoctacion\": \"2024-12-02\",\n      \"idTipoHabitacion\": 1\n    },\n    {\n      \"fechaPernoctacion\": \"2024-12-03\",\n      \"idTipoHabitacion\": 1\n    },\n    {\n      \"fechaPernoctacion\": \"2024-12-04\",\n      \"idTipoHabitacion\": 1\n    }\n  ]\n}"
+					"raw": "{\n  \"fechaEntrada\": \"2024-12-01\",\n  \"fechaSalida\": \"2024-12-05\",\n  \"canalReserva\": \"Web\",\n  \"tipo\": \"Reserva\",\n  \"hotel\": \"Gran Hotel del Mar\",\n  \"tipoHabitacion\": \"Doble Superior\",\n  \"regimen\": \"AD\",\n  \"clientePaga\": {\n    \"nombre\": \"María\",\n    \"apellidos\": \"García López\",\n    \"correoElectronico\": \"maria.garcia@example.com\",\n    \"DNI\": \"12345678A\",\n    \"fechaDeNacimiento\": \"1990-05-15\"\n  },\n  \"huespedes\": [\n    {\n      \"nombre\": \"María\",\n      \"apellidos\": \"García López\",\n      \"correoElectronico\": \"maria.garcia@example.com\",\n      \"DNI\": \"12345678A\"\n    }\n  ]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:3000/api/reservas",

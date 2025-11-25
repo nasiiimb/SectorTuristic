@@ -11,7 +11,7 @@ prisma.$connect().then(async () => {
   await prisma.$executeRawUnsafe('SET NAMES utf8mb4');
   await prisma.$executeRawUnsafe('SET CHARACTER SET utf8mb4');
   await prisma.$executeRawUnsafe('SET character_set_connection=utf8mb4');
-  console.log('✅ [prisma]: Conexión establecida con charset UTF-8');
+  // Conexión inicial establecida - logs deshabilitados por configuración
 });
 
 export default prisma;

@@ -31,22 +31,28 @@ router.get('/', asyncHandler(async (req, res) => {
     throw new ValidationError('La fecha de salida debe ser posterior a la fecha de entrada');
   }
 
-    // Caso 1: Búsqueda por hotel específico (por nombre)
+    // Caso 1: Búsqueda por hotel específico (por ID o nombre)
     if (hotel) {
-      // Buscar el hotel por nombre
+      // Intentar parsear como ID numérico
+      const hotelId = parseInt(hotel as string);
+      const isId = !isNaN(hotelId);
+      
+      // Buscar el hotel por ID o por nombre
       const hotelEncontrado = await prisma.hotel.findFirst({
-        where: {
-          nombre: {
-            contains: hotel as string,
-          },
-        },
+        where: isId 
+          ? { idHotel: hotelId }  // Buscar por ID
+          : {                     // Buscar por nombre
+              nombre: {
+                contains: hotel as string,
+              },
+            },
         include: {
           ciudad: true,
         },
       });
 
       if (!hotelEncontrado) {
-        throw new NotFoundError(`Hotel con nombre "${hotel}"`);
+        throw new NotFoundError(`Hotel con ${isId ? 'ID' : 'nombre'} "${hotel}"`);
       }
 
       // Contar el total de habitaciones de cada tipo en el hotel
@@ -66,16 +72,20 @@ router.get('/', asyncHandler(async (req, res) => {
       );
 
       // Obtener las reservas que se solapan con el rango de fechas
-      const reservasEnRango = await prisma.reserva.findMany({
-        where: {
-          precioRegimen: {
-            idHotel: hotelEncontrado.idHotel,
-          },
-          AND: [
-            { fechaEntrada: { lt: salida } },
-            { fechaSalida: { gt: entrada } },
-          ],
+      // IMPORTANTE: Solo contar reservas ACTIVAS (no canceladas)
+      const whereReservas: any = {
+        estado: 'Activa', // Solo considerar reservas activas
+        precioRegimen: {
+          idHotel: hotelEncontrado.idHotel,
         },
+        AND: [
+          { fechaEntrada: { lt: salida } },
+          { fechaSalida: { gt: entrada } },
+        ],
+      };
+      
+      const reservasEnRango = await prisma.reserva.findMany({
+        where: whereReservas,
         include: {
           pernoctaciones: {
             select: {
@@ -203,16 +213,20 @@ router.get('/', asyncHandler(async (req, res) => {
         );
 
         // Obtener las reservas que se solapan con el rango de fechas
-        const reservasEnRango = await prisma.reserva.findMany({
-          where: {
-            precioRegimen: {
-              idHotel: hotel.idHotel,
-            },
-            AND: [
-              { fechaEntrada: { lt: salida } },
-              { fechaSalida: { gt: entrada } },
-            ],
+        // IMPORTANTE: Solo contar reservas ACTIVAS (no canceladas)
+        const whereReservas: any = {
+          estado: 'Activa', // Solo considerar reservas activas
+          precioRegimen: {
+            idHotel: hotel.idHotel,
           },
+          AND: [
+            { fechaEntrada: { lt: salida } },
+            { fechaSalida: { gt: entrada } },
+          ],
+        };
+        
+        const reservasEnRango = await prisma.reserva.findMany({
+          where: whereReservas,
           include: {
             pernoctaciones: {
               select: {
