@@ -355,7 +355,7 @@ class MainWindow:
             
             query_string = "&".join(params)
             
-            print(f"🔍 Buscando reservas ACTIVAS en hotel {self.hotel_seleccionado.nombre}: {query_string}")
+            print(f"[BUSCAR] Buscando reservas ACTIVAS en hotel {self.hotel_seleccionado.nombre}: {query_string}")
             
             # Llamar al endpoint de búsqueda de reservas ACTIVAS
             response = self.api_client.get(f"reservas/buscar/cliente/activas?{query_string}")
@@ -380,7 +380,7 @@ class MainWindow:
                 label.pack(pady=20)
                 return
             
-            print(f"✅ Se encontraron {len(reservas_data)} reservas")
+            print(f"[INFO] Se encontraron {len(reservas_data)} reservas")
             
             # Convertir a objetos Reserva y mostrar
             from src.domain.reserva import Reserva
@@ -397,7 +397,7 @@ class MainWindow:
             self._mostrar_lista_reservas(reservas)
             
         except Exception as e:
-            print(f"❌ Error al buscar reservas: {e}")
+            print(f"[ERROR] Error al buscar reservas: {e}")
             import traceback
             traceback.print_exc()
             messagebox.showerror("Error", f"Error al buscar reservas: {str(e)}")
@@ -417,8 +417,8 @@ class MainWindow:
             
             reservas_data = response.data
             
-            print(f"📋 Listando reservas ACTIVAS del hotel: {self.hotel_seleccionado.nombre}")
-            print(f"✅ Se encontraron {len(reservas_data)} reservas activas")
+            print(f"[INFO] Listando reservas ACTIVAS del hotel: {self.hotel_seleccionado.nombre}")
+            print(f"[INFO] Se encontraron {len(reservas_data)} reservas activas")
             
             # Convertir a objetos Reserva
             from src.domain.reserva import Reserva
@@ -574,7 +574,7 @@ class MainWindow:
                 reserva._precio_regimen_data = response.data.get('precioRegimen')
                 reserva._raw_data = response.data  # Guardar datos completos incluyendo pernoctaciones
         except Exception as e:
-            print(f"⚠️ No se pudieron obtener datos completos de la reserva: {e}")
+            print(f"[WARNING] No se pudieron obtener datos completos de la reserva: {e}")
             import traceback
             traceback.print_exc()
         

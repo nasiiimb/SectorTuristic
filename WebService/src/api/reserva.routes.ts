@@ -467,12 +467,20 @@ router.post('/', async (req, res) => {
     }
 
     // Buscar o crear el cliente que paga
+    // Primero buscar por DNI
     let cliente = await prisma.cliente.findUnique({
       where: { DNI: clientePaga.DNI },
     });
 
+    // Si no existe por DNI, buscar por correo electrónico
     if (!cliente) {
-      // Crear el cliente si no existe
+      cliente = await prisma.cliente.findUnique({
+        where: { correoElectronico: clientePaga.correoElectronico },
+      });
+    }
+
+    if (!cliente) {
+      // Crear el cliente si no existe ni por DNI ni por correo
       cliente = await prisma.cliente.create({
         data: {
           nombre: clientePaga.nombre,
@@ -480,7 +488,8 @@ router.post('/', async (req, res) => {
           correoElectronico: clientePaga.correoElectronico,
           DNI: clientePaga.DNI,
           fechaDeNacimiento: clientePaga.fechaDeNacimiento ? new Date(clientePaga.fechaDeNacimiento) : null,
-        },
+          password: '', // Password vacío, debe ser actualizado por el usuario
+        } as any,
       });
     }
 
@@ -629,7 +638,8 @@ router.post('/', async (req, res) => {
               correoElectronico: huesped.correoElectronico,
               DNI: huesped.DNI,
               fechaDeNacimiento: huesped.fechaDeNacimiento ? new Date(huesped.fechaDeNacimiento) : null,
-            },
+              password: '', // Password vacío, debe ser actualizado por el usuario
+            } as any,
           });
         }
 
@@ -705,9 +715,17 @@ router.post('/', async (req, res) => {
 
     const precioTotal = (precioHabitacion * numeroNoches) + (precioRegimenPorNoche * numeroNoches) - descuentoTotal;
 
+    // Generar localizador más largo: WS-2026-00001
+    const year = new Date().getFullYear();
+    const localizador = `WS-${year}-${String(nuevaReserva.idReserva).padStart(5, '0')}`;
+
     res.status(201).json({
       message: 'Reserva creada exitosamente',
-      reserva: nuevaReserva,
+      localizador: localizador,
+      reserva: {
+        ...nuevaReserva,
+        localizador: localizador
+      },
       precioDetalle: {
         precioHabitacionPorNoche: precioHabitacion,
         precioRegimenPorNoche: precioRegimenPorNoche,
@@ -720,8 +738,12 @@ router.post('/', async (req, res) => {
       clienteCreado: cliente.idCliente !== undefined ? 'El cliente fue registrado en el sistema' : undefined,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error en el servidor al crear la reserva' });
+    console.error("Error completo al crear reserva:", error);
+    res.status(500).json({
+      message: 'Error en el servidor al crear la reserva',
+      error: error instanceof Error ? error.message : String(error),
+      details: error instanceof Error ? error.stack : undefined,
+    });
   }
 });
 
@@ -1040,7 +1062,8 @@ router.post('/:id/checkin', async (req, res) => {
               correoElectronico: huesped.correoElectronico,
               DNI: huesped.DNI,
               fechaDeNacimiento: huesped.fechaDeNacimiento ? new Date(huesped.fechaDeNacimiento) : null,
-            },
+              password: '', // Password vacío, debe ser actualizado por el usuario
+            } as any,
           });
         }
 

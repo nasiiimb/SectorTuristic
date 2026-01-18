@@ -1,106 +1,254 @@
-# Principal - Motor de Reservas Unificado
+# Principal - Sistema de Reservas Unificado
 
 ## Descripción General
 
-**Principal** es un sistema de reservas unificado que integra múltiples proveedores de alojamiento en una única plataforma. Actúa como agregador y punto de entrada único para búsqueda y reserva de habitaciones de hotel.
-
-> **Versión**: 1.0.0  
-> **Última actualización**: 18 de Enero 2026
-> **Estado**: Producción Ready ✅
+Principal es una aplicación web fullstack que actúa como plataforma unificada de reservas hoteleras. Integra múltiples fuentes de disponibilidad (WebService y Channel Manager) en una única interfaz de búsqueda y reserva para los usuarios finales.
 
 ## Arquitectura del Sistema
 
-### Componentes Principales
+### Stack Tecnológico
+
+**Backend:**
+- Node.js + Express + TypeScript
+- Puerto: 8010
+- Base de datos: MySQL (principal_db)
+- Autenticación: JWT (JSON Web Tokens)
+
+**Frontend:**
+- Vue 3 + Vite
+- Puerto: 5174/5175
+- UI: CSS personalizado con tema morado/violeta
+- Comunicación: Axios para llamadas API
+
+### Estructura del Proyecto
 
 ```
 Principal/
-├── backend/          # Servidor Node.js + Express + TypeScript
+├── backend/                 # Servidor Node.js
 │   ├── src/
-│   │   ├── controllers/     # Lógica de negocio
-│   │   ├── services/        # Clientes para APIs externas
-│   │   ├── config/          # Configuración de BD y servicios
-│   │   ├── middleware/      # Autenticación JWT
-│   │   └── types/           # Definiciones TypeScript
-│   └── package.json
+│   │   ├── controllers/    # Lógica de negocio
+│   │   │   ├── AuthController.ts
+│   │   │   └── BookingController.ts
+│   │   ├── services/       # Clientes externos
+│   │   │   ├── WebServiceClient.ts
+│   │   │   └── ChannelClient.ts
+│   │   ├── middleware/     # JWT y validaciones
+│   │   ├── config/         # Configuración DB
+│   │   ├── types/          # TypeScript interfaces
+│   │   └── server.ts       # Punto de entrada
+│   ├── package.json
+│   └── tsconfig.json
 │
-└── frontend/         # Aplicación Vue 3 + Vite
-    ├── src/
-    │   ├── views/           # Páginas principales
-    │   ├── components/      # Componentes reutilizables
-    │   ├── api/             # Clientes HTTP
-    │   ├── router/          # Configuración de rutas
-    │   └── assets/          # Recursos estáticos
-    └── package.json
+├── frontend/               # Aplicación Vue 3
+│   ├── src/
+│   │   ├── views/         # Páginas principales
+│   │   │   ├── Home.vue
+│   │   │   ├── Resultados.vue
+│   │   │   ├── MisReservas.vue
+│   │   │   └── Perfil.vue
+│   │   ├── components/    # Componentes reutilizables
+│   │   │   ├── Navbar.vue
+│   │   │   └── RegimenModal.vue
+│   │   ├── api/          # Clientes API
+│   │   │   ├── auth.js
+│   │   │   └── booking.js
+│   │   ├── router/       # Vue Router
+│   │   ├── App.vue
+│   │   └── main.js
+│   ├── package.json
+│   └── vite.config.js
+│
+├── package.json           # Scripts de desarrollo unificados
+└── README.md             # Esta documentación
 ```
 
-## Integraciones
+## Funcionalidades Principales
 
-### Proveedores Integrados
+### 1. Sistema de Autenticación
 
-1. **WebService** (Puerto 3000)
-   - Sistema PMS completo con gestión de reservas
-   - Regímenes de alojamiento (SA, AD, MP, PC, TI)
-   - Gestión de contratos y precios
-   - Base de datos: MySQL (Prisma ORM)
-   - Localizadores: `WS-2026-00001`
-   - **Canal identificado como**: `Principal`
+**Registro de Usuarios:**
+- Campos requeridos: nombre, apellidos, email, contraseña
+- Campos opcionales: DNI, fecha de nacimiento
+- Validación de email único
+- Contraseñas hasheadas con bcrypt
 
-2. **Channel** (Puerto 8001)
-   - Channel Manager para distribución
-   - Gestión de disponibilidad en tiempo real
-   - Base de datos: SQLite
-   - Framework: FastAPI (Python)
-   - Localizadores: UUID
+**Inicio de Sesión:**
+- Login con email y contraseña
+- Generación de token JWT válido por 24 horas
+- Token almacenado en localStorage
+- Persistencia de sesión entre recargas
 
-### Flujo de Datos
+**Gestión de Sesión:**
+- Validación automática de token en cada petición
+- Navbar reactivo que muestra/oculta opciones según estado de sesión
+- Event system (window events) para sincronizar estado entre componentes
 
+### 2. Búsqueda Unificada de Disponibilidad
+
+El sistema consulta simultáneamente dos fuentes:
+
+**WebService (PMS):**
+- API REST en Node.js + Prisma + MySQL
+- Puerto: 3000
+- Proporciona hoteles con sistema de gestión completo
+- Incluye regímenes de alojamiento (SA, AD, MP, PC, TI)
+- Requiere selección de régimen al reservar
+
+**Channel Manager:**
+- API REST en FastAPI + SQLite
+- Puerto: 8001
+- Proporciona disponibilidad de canales externos
+- Reservas directas sin regímenes
+- Sistema de stock con reducción automática
+
+**Proceso de Búsqueda:**
+1. Usuario introduce: destino, fechas (entrada/salida), personas
+2. Backend consulta ambas fuentes en paralelo (Promise.all)
+3. Se unifican resultados añadiendo campo `origen` a cada habitación
+4. Frontend muestra lista combinada con indicador de origen
+
+### 3. Sistema de Reservas
+
+#### Flujo para Reservas de Channel:
+
+1. Usuario hace clic en "Reservar"
+2. Validación de autenticación
+3. Confirmación con detalles (noches, precio total)
+4. POST a `/api/book` con `origen: 'Channel'`
+5. Backend envía a Channel API (POST `/api/reservas`)
+6. Channel valida disponibilidad y reduce stock
+7. Se guarda en BD local (principal_db)
+8. Respuesta con localizador UUID
+9. Redirección a "Mis Reservas"
+
+**Campos enviados a Channel:**
+```javascript
+{
+  hotel_id: number,              // ID del hotel en Channel
+  tipo_habitacion_id: number,    // ID del tipo de habitación
+  fecha_entrada: 'YYYY-MM-DD',
+  fecha_salida: 'YYYY-MM-DD',
+  num_huespedes: number
+}
 ```
-Usuario → Frontend (Vue) → Backend (Express) → WebService / Channel
-                                              ↓
-                                         Base de Datos
+
+#### Flujo para Reservas de WebService:
+
+1. Usuario hace clic en "Reservar"
+2. Validación de autenticación
+3. **Abre modal de selección de régimen**
+4. Modal carga regímenes del hotel (GET `/api/regimenes/hotel/{idHotel}`)
+5. Usuario selecciona régimen (SA/AD/MP/PC/TI)
+6. Modal muestra precio total (habitación + régimen)
+7. Confirmación → POST a `/api/book` con `origen: 'WebService'`
+8. Backend envía a WebService (POST `/api/reservas`)
+9. WebService valida hotel, tipo habitación, régimen, precios
+10. Crea cliente si no existe, genera reserva
+11. Se guarda en BD local (principal_db)
+12. Respuesta con localizador formato `WS-YYYY-#####` (ej: WS-2026-00001)
+13. Redirección a "Mis Reservas"
+
+**Campos enviados a WebService:**
+```javascript
+{
+  fechaEntrada: 'YYYY-MM-DD',
+  fechaSalida: 'YYYY-MM-DD',
+  hotel: 'Nombre del Hotel',
+  tipoHabitacion: 'Tipo de Habitación',
+  regimen: 'AD',                 // Código del régimen seleccionado
+  canal: 'Principal',            // Identificador del canal
+  clientePaga: {
+    nombre: string,
+    apellidos: string,
+    correoElectronico: string,
+    DNI: string,
+    fechaDeNacimiento: string
+  },
+  huespedes: []
+}
 ```
 
-## Instalación y Configuración
+### 4. Gestión de Reservas del Usuario
 
-### Prerrequisitos
+**Vista "Mis Reservas":**
+- Lista todas las reservas del usuario autenticado
+- Muestra origen (Channel/WebService), fechas, hotel, habitación
+- Indica estado, localizador, precio
+- Diferencia visual por origen
 
-- **Node.js**: v16 o superior
-- **npm**: v7 o superior
-- **MySQL**: Para el backend del Principal y WebService
-- **Python 3.9+**: Para el Channel Manager (debe estar ejecutándose)
+**Datos mostrados:**
+- Localizador de reserva
+- Hotel y tipo de habitación
+- Fechas de entrada/salida
+- Número de huéspedes
+- Precio total
+- Fecha de creación
+- Origen de la reserva
+
+### 5. Perfil de Usuario
+
+**Información visualizada:**
+- Nombre completo
+- Email
+- DNI (si proporcionado)
+- Fecha de nacimiento (si proporcionada)
+- Fecha de registro
+
+## Configuración y Despliegue
+
+### Requisitos Previos
+
+- Node.js v16 o superior
+- MySQL 8.0
+- WebService ejecutándose en puerto 3000
+- Channel Manager ejecutándose en puerto 8001
+
+### Variables de Entorno
+
+Crear archivo `.env` en `Principal/backend/`:
+
+```env
+# Base de datos
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=tu_password
+DB_NAME=principal_db
+DB_PORT=3306
+
+# JWT
+JWT_SECRET=tu_secret_key_segura_aqui
+
+# APIs externas
+WEBSERVICE_URL=http://localhost:3000
+CHANNEL_URL=http://localhost:8001
+
+# Puerto del servidor
+PORT=8010
+```
 
 ### Instalación
 
 ```bash
-# Clonar el repositorio
+# Instalar dependencias
 cd Principal
-
-# Instalar dependencias (backend + frontend)
 npm install
 
-# Configurar base de datos MySQL
-# Crear la base de datos 'principal_db'
-mysql -u root -p -e "CREATE DATABASE principal_db;"
+# Esto instalará automáticamente:
+# - Backend: express, mysql2, bcrypt, jsonwebtoken, axios, typescript
+# - Frontend: vue, vue-router, axios, vite
 ```
 
-### Configuración de Base de Datos
+### Base de Datos
 
-**Backend Principal** (`backend/src/config/database.ts`):
-```typescript
-const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'tu_password',
-  database: 'principal_db',
-  waitForConnections: true,
-  connectionLimit: 10
-});
-```
-
-### Crear Tablas
-
+**Crear base de datos:**
 ```sql
--- Tabla de usuarios
+CREATE DATABASE principal_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+**Tablas necesarias:**
+
+1. **usuarios**: Almacena datos de usuarios registrados
+```sql
 CREATE TABLE usuarios (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nombre VARCHAR(100) NOT NULL,
@@ -111,649 +259,412 @@ CREATE TABLE usuarios (
   fecha_nacimiento DATE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+```
 
--- Tabla de reservas
+2. **reservas**: Almacena todas las reservas (Channel y WebService)
+```sql
 CREATE TABLE reservas (
   id INT AUTO_INCREMENT PRIMARY KEY,
   usuario_id INT NOT NULL,
+  origen ENUM('Channel', 'WebService') NOT NULL,
   localizador VARCHAR(50) NOT NULL,
-  origen ENUM('WebService', 'Channel') NOT NULL,
   hotel_nombre VARCHAR(255) NOT NULL,
-  habitacion_tipo VARCHAR(255) NOT NULL,
+  habitacion_tipo VARCHAR(100) NOT NULL,
   fecha_entrada DATE NOT NULL,
   fecha_salida DATE NOT NULL,
   num_huespedes INT NOT NULL,
   precio_total DECIMAL(10,2) NOT NULL,
+  estado VARCHAR(50) DEFAULT 'confirmada',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-  INDEX idx_usuario (usuario_id),
-  INDEX idx_localizador (localizador)
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 ```
 
-## Ejecución
+### Ejecución
 
-### Desarrollo (Recomendado)
-
+**Modo Desarrollo (Recomendado):**
 ```bash
-# Ejecutar backend + frontend simultáneamente
+# Desde la raíz de Principal/
 npm run dev
 ```
 
-Esto ejecuta:
-- **Backend**: `http://localhost:8010`
-- **Frontend**: `http://localhost:5174` o `http://localhost:5175`
+Este comando ejecuta concurrentemente:
+- Backend en http://localhost:8010
+- Frontend en http://localhost:5174
 
-### Ejecución Individual
-
+**Modo Producción:**
 ```bash
-# Solo backend
+# Compilar backend
 cd backend
-npm run dev
-
-# Solo frontend
-cd frontend
-npm run dev
-```
-
-### Producción
-
-```bash
-# Compilar frontend
-cd frontend
 npm run build
 
-# Iniciar backend en producción
-cd backend
+# Compilar frontend
+cd ../frontend
+npm run build
+
+# Ejecutar backend (sirve también el frontend compilado)
+cd ../backend
 npm start
 ```
 
-## API Endpoints
+## Integración con Sistemas Externos
+
+### WebService
+
+**Endpoints utilizados:**
+
+- `GET /api/disponibilidad/buscar`
+  - Parámetros: ciudad, fechaEntrada, fechaSalida, numeroPersonas
+  - Respuesta: Array de hoteles con habitaciones disponibles
+
+- `GET /api/regimenes/hotel/{idHotel}`
+  - Respuesta: Lista de regímenes disponibles con precios
+
+- `POST /api/reservas`
+  - Body: Datos de reserva completos
+  - Respuesta: Reserva creada con localizador
+
+**Transformación de datos:**
+- El WebService devuelve estructura compleja con hoteles y tipos de habitación
+- Principal transforma a formato plano: una habitación = un resultado
+- Añade campo `origen: 'WebService'` y `idHotel` para identificación
+
+### Channel Manager
+
+**Endpoints utilizados:**
+
+- `GET /api/disponibilidad`
+  - Parámetros: destino, fecha_entrada, fecha_salida, personas
+  - Respuesta: Array de habitaciones disponibles
+
+- `POST /api/reservas`
+  - Body: Datos de reserva
+  - Respuesta: Reserva creada con UUID
+
+**Transformación de datos:**
+- Channel devuelve resultados directos por habitación
+- Principal añade campo `origen: 'Channel'`
+- Mapea campos al formato unificado
+
+## Paleta de Colores
+
+El sistema utiliza una paleta morada/violeta:
+
+```css
+--primary: #667eea → #764ba2 (degradado)
+--secondary: #9333ea
+--accent: #6b46c1
+--hover: tonos más oscuros de morado
+```
+
+## API Endpoints del Principal
 
 ### Autenticación
 
-#### POST `/api/auth/register`
-Registro de nuevo usuario.
-
-**Body:**
+**POST /api/auth/register**
 ```json
+Request:
 {
   "nombre": "Juan",
-  "apellidos": "Pérez García",
+  "apellidos": "Pérez",
   "email": "juan@example.com",
-  "password": "contraseña123",
+  "password": "password123",
   "dni": "12345678A",           // Opcional
-  "fecha_nacimiento": "1990-01-15"  // Opcional
+  "fecha_nacimiento": "1990-01-01"  // Opcional
 }
-```
 
-**Response:**
-```json
-{
-  "message": "Usuario registrado exitosamente",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "nombre": "Juan",
-    "apellidos": "Pérez García",
-    "email": "juan@example.com"
-  }
-}
-```
-
-#### POST `/api/auth/login`
-Inicio de sesión.
-
-**Body:**
-```json
-{
-  "email": "juan@example.com",
-  "password": "contraseña123"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Login exitoso",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "nombre": "Juan",
-    "apellidos": "Pérez García",
-    "email": "juan@example.com"
-  }
-}
-```
-
-### Búsqueda y Disponibilidad
-
-#### GET `/api/search`
-Buscar habitaciones disponibles en todos los proveedores.
-
-**Query Parameters:**
-- `ciudad`: Ciudad de destino
-- `fecha_entrada`: Fecha de entrada (YYYY-MM-DD)
-- `fecha_salida`: Fecha de salida (YYYY-MM-DD)
-- `personas`: Número de huéspedes
-
-**Ejemplo:**
-```
-GET /api/search?ciudad=Palma&fecha_entrada=2026-06-01&fecha_salida=2026-06-07&personas=2
-```
-
-**Response:**
-```json
-{
-  "habitaciones": [
-    {
-      "id": "1-101",
-      "nombre": "Habitación Doble Superior",
-      "hotel": "Gran Hotel del Mar",
-      "ciudad": "Palma",
-      "precio": 120.50,
-      "foto_url": "https://...",
-      "origen": "WebService",
-      "idHotel": 1,
-      "capacidad": 2
-    },
-    {
-      "id": "uuid-habitacion",
-      "nombre": "Suite Junior",
-      "hotel": "Hotel Playa",
-      "ciudad": "Ibiza",
-      "precio": 95.00,
-      "foto_url": "https://...",
-      "origen": "Channel",
-      "hotelId": "hotel-uuid-123"
-    }
-  ],
-  "total": 15,
-  "filtros_aplicados": {
-    "ciudad": "Palma",
-    "fecha_entrada": "2026-06-01",
-    "fecha_salida": "2026-06-07",
-    "personas": 2
-  },
-  "estadisticas": {
-    "webservice": 8,
-    "channel": 7
-  }
-}
-```
-
-### Reservas
-
-#### POST `/api/book`
-Crear una nueva reserva (requiere autenticación).
-
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
-**Body para WebService:**
-```json
-{
-  "origen": "WebService",
-  "habitacion_id": "1-101",
-  "hotel_nombre": "Gran Hotel del Mar",
-  "habitacion_tipo": "Habitación Doble Superior",
-  "fecha_entrada": "2026-06-01",
-  "fecha_salida": "2026-06-07",
-  "num_huespedes": 2,
-  "precio_total": 845.00,
-  "regimen": "AD",
-  "idHotel": 1
-}
-```
-
-**Body para Channel:**
-```json
-{
-  "origen": "Channel",
-  "habitacion_id": "uuid-habitacion",
-  "hotel_nombre": "Hotel Playa",
-  "habitacion_tipo": "Suite Junior",
-  "fecha_entrada": "2026-06-01",
-  "fecha_salida": "2026-06-07",
-  "num_huespedes": 2,
-  "precio_total": 570.00,
-  "hotel_id": "hotel-uuid-123"
-}
-```
-
-**Response:**
-```json
+Response:
 {
   "success": true,
-  "message": "Reserva en WebService creada exitosamente",
-  "localizador": "WS-2026-00001",
-  "reserva": {
-    "id": 123,
-    "origen": "WebService",
-    "fecha_entrada": "2026-06-01",
-    "fecha_salida": "2026-06-07",
-    "precio_total": 845.00
+  "message": "Usuario registrado exitosamente",
+  "token": "jwt_token_here",
+  "usuario": {
+    "id": 1,
+    "nombre": "Juan",
+    "apellidos": "Pérez",
+    "email": "juan@example.com"
   }
 }
 ```
 
-#### GET `/api/reservas`
-Obtener todas las reservas del usuario autenticado.
-
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
-**Response:**
+**POST /api/auth/login**
 ```json
+Request:
+{
+  "email": "juan@example.com",
+  "password": "password123"
+}
+
+Response:
+{
+  "success": true,
+  "token": "jwt_token_here",
+  "usuario": {
+    "id": 1,
+    "nombre": "Juan",
+    "apellidos": "Pérez",
+    "email": "juan@example.com",
+    "dni": "12345678A",
+    "fecha_nacimiento": "1990-01-01"
+  }
+}
+```
+
+**GET /api/auth/me**
+```
+Headers: Authorization: Bearer {token}
+
+Response:
+{
+  "success": true,
+  "usuario": { /* datos del usuario */ }
+}
+```
+
+### Búsqueda y Reservas
+
+**GET /api/search**
+```
+Query params:
+- destino: string
+- fecha_entrada: YYYY-MM-DD
+- fecha_salida: YYYY-MM-DD
+- personas: number
+
+Response:
+{
+  "success": true,
+  "habitaciones": [
+    {
+      "id": "unique_id",
+      "hotel": "Hotel Name",
+      "nombre": "Habitación Doble",
+      "precio": 150.00,
+      "origen": "WebService" | "Channel",
+      "foto_url": "https://...",
+      "capacidad": 2,
+      // Campos específicos según origen
+      "idHotel": 1,           // Solo WebService
+      "hotelId": 1            // Solo Channel
+    }
+  ],
+  "resumen": {
+    "total": 10,
+    "webservice": 6,
+    "channel": 4
+  }
+}
+```
+
+**POST /api/book**
+```json
+Headers: Authorization: Bearer {token}
+
+Request:
+{
+  "origen": "WebService" | "Channel",
+  "habitacion_id": "id_habitacion",
+  "hotel_nombre": "Hotel Name",
+  "habitacion_tipo": "Habitación Doble",
+  "fecha_entrada": "2026-01-20",
+  "fecha_salida": "2026-01-25",
+  "num_huespedes": 2,
+  "precio_total": 750.00,
+  // Campos específicos por origen:
+  "hotel_id": 1,              // Solo Channel
+  "regimen": "AD",            // Solo WebService
+  "idHotel": 1                // Solo WebService
+}
+
+Response:
+{
+  "success": true,
+  "message": "Reserva creada exitosamente",
+  "reserva": {
+    "id": 1,
+    "localizador": "WS-2026-00001" | "uuid",
+    "origen": "WebService" | "Channel",
+    /* más detalles */
+  }
+}
+```
+
+**GET /api/reservas**
+```
+Headers: Authorization: Bearer {token}
+
+Response:
 {
   "success": true,
   "reservas": [
     {
       "id": 1,
       "localizador": "WS-2026-00001",
-      "hotel_nombre": "Gran Hotel del Mar",
-      "habitacion_tipo": "Habitación Doble Superior",
-      "fecha_entrada": "2026-06-01T00:00:00.000Z",
-      "fecha_salida": "2026-06-07T00:00:00.000Z",
-      "num_huespedes": 2,
-      "precio_total": "845.00",
       "origen": "WebService",
+      "hotel_nombre": "Hotel Name",
+      "habitacion_tipo": "Habitación Doble",
+      "fecha_entrada": "2026-01-20",
+      "fecha_salida": "2026-01-25",
+      "num_huespedes": 2,
+      "precio_total": 750.00,
+      "estado": "confirmada",
       "created_at": "2026-01-18T10:30:00.000Z"
     }
   ]
 }
 ```
 
-## Frontend - Componentes Principales
+## Componentes Frontend Destacados
 
-### Vistas
+### RegimenModal.vue
 
-#### `Home.vue`
-Página de inicio con buscador principal.
-- Formulario de búsqueda (ciudad, fechas, personas)
-- Validación de fechas
-- Redirección a resultados
+Modal especializado para selección de régimen en reservas de WebService.
 
-#### `Resultados.vue`
-Listado de habitaciones disponibles.
-- Filtros aplicados
-- Tarjetas de habitaciones
-- Modal de selección de régimen (WebService)
-- Botones de reserva por proveedor
+**Props:**
+- `visible`: Boolean - Controla visibilidad
+- `room`: Object - Datos de la habitación
+- `hotelId`: Number - ID del hotel para cargar regímenes
+- `nights`: Number - Número de noches
+- `roomPrice`: Number - Precio de la habitación
 
-#### `MisReservas.vue`
-Historial de reservas del usuario.
-- Lista de todas las reservas
-- Localizadores
-- Detalles completos
-- Filtrado por origen
+**Eventos:**
+- `@confirm`: Emite régimen seleccionado y precio total
+- `@close`: Emite cuando se cierra el modal
 
-#### `Login.vue` / `Registro.vue`
-Autenticación de usuarios.
-- Formularios de login/registro
-- Validación de campos
-- Gestión de tokens JWT
+**Funcionamiento:**
+1. Se monta cuando `visible=true` (v-if)
+2. En `mounted()` carga regímenes del WebService
+3. Muestra lista de regímenes con precios
+4. Permite selección con feedback visual
+5. Calcula precio total: (habitación + régimen) × noches
+6. Confirma y devuelve régimen seleccionado
 
-### Componentes
+### Navbar.vue
 
-#### `NavBar.vue`
-Barra de navegación principal.
-- Enlaces a secciones
-- Estado de autenticación reactivo
-- Logout funcional
-- Escucha eventos de autenticación (`auth-change`)
+Componente de navegación reactivo.
 
-#### `RegimenModal.vue`
-Modal para seleccionar régimen de alojamiento (WebService).
-- Carga dinámica de regímenes desde WebService API
-- Cálculo automático de precio total
-- Descripción detallada de cada régimen:
-  - **SA**: Solo Alojamiento
-  - **AD**: Alojamiento y Desayuno
-  - **MP**: Media Pensión (desayuno + comida o cena)
-  - **PC**: Pensión Completa (desayuno + comida + cena)
-  - **TI**: Todo Incluido (todas las comidas y bebidas)
-
-## Autenticación
-
-### Sistema JWT
-
-El sistema utiliza JSON Web Tokens para autenticación:
-
-1. Usuario se registra/inicia sesión
-2. Backend genera token JWT firmado
-3. Frontend almacena token en `localStorage`
-4. Token se envía en header `Authorization: Bearer <token>` en cada petición
-5. Backend valida token en middleware de autenticación
-
-### Persistencia de Sesión
-
-```javascript
-// Guardar token
-localStorage.setItem('token', token);
-localStorage.setItem('user', JSON.stringify(user));
-
-// Recuperar token
-const token = localStorage.getItem('token');
-const user = JSON.parse(localStorage.getItem('user'));
-
-// Limpiar sesión
-localStorage.removeItem('token');
-localStorage.removeItem('user');
-```
-
-### Eventos de Autenticación
-
-```javascript
-// Emitir evento de cambio de autenticación
-window.dispatchEvent(new Event('auth-change'));
-
-// Escuchar cambios (en NavBar)
-window.addEventListener('auth-change', () => {
-  this.checkAuth();
-});
-```
-
-## Flujo de Reserva Detallado
-
-### Reserva WebService
-
-1. Usuario busca disponibilidad
-2. Selecciona habitación de WebService
-3. **Modal de régimen** se abre automáticamente
-4. Sistema llama a `GET /api/regimenes/hotel/{idHotel}` del WebService
-5. Usuario ve lista de regímenes con precios
-6. Usuario selecciona un régimen
-7. Se calcula precio total: `(precio_habitación + precio_régimen) × noches`
-8. Usuario confirma reserva
-9. Backend envía petición a WebService con:
-   ```json
-   {
-     "fechaEntrada": "2026-06-01",
-     "fechaSalida": "2026-06-07",
-     "hotel": "Gran Hotel del Mar",
-     "tipoHabitacion": "Habitación Doble Superior",
-     "regimen": "AD",
-     "clientePaga": { /* datos del usuario */ },
-     "canal": "Principal"
-   }
-   ```
-10. WebService crea reserva y genera localizador: `WS-2026-00001`
-11. Backend guarda reserva en BD local
-12. Usuario recibe confirmación con localizador
-
-### Reserva Channel
-
-1. Usuario busca disponibilidad
-2. Selecciona habitación de Channel
-3. Confirmación directa (sin modal de régimen)
-4. Backend envía petición a Channel con:
-   ```json
-   {
-     "hotel_id": "uuid-hotel",
-     "tipo_habitacion_id": "uuid-habitacion",
-     "fecha_entrada": "2026-06-01",
-     "fecha_salida": "2026-06-07",
-     "num_huespedes": 2,
-     "email_cliente": "user@example.com"
-   }
-   ```
-5. Channel reduce disponibilidad automáticamente (stock - 1 por día)
-6. Channel genera UUID como localizador
-7. Backend guarda reserva en BD local
-8. Usuario recibe confirmación con localizador UUID
-
-## Diseño y Estilo
-
-### Paleta de Colores (Tema Púrpura)
-
-```css
-:root {
-  --primary: #9333ea;      /* Púrpura principal */
-  --primary-dark: #6b46c1; /* Púrpura oscuro */
-  --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --text: #1f2937;         /* Texto principal */
-  --background: #f9fafb;   /* Fondo claro */
-}
-```
-
-### Características de Diseño
-
-- **Framework CSS**: Tailwind CSS (utility-first)
-- **Componentes**: Diseño modular y reutilizable
-- **Responsive**: Adaptado a móvil, tablet y desktop
-- **Animaciones**: Transiciones suaves en modales y elementos
-- **Iconos**: Font Awesome para iconografía
-
-## Dependencias Principales
-
-### Backend
-
-```json
-{
-  "express": "^4.18.2",
-  "typescript": "^5.0.0",
-  "mysql2": "^3.6.0",
-  "axios": "^1.6.0",
-  "jsonwebtoken": "^9.0.2",
-  "bcrypt": "^5.1.1",
-  "dotenv": "^16.0.3",
-  "cors": "^2.8.5",
-  "concurrently": "^8.2.0"
-}
-```
-
-### Frontend
-
-```json
-{
-  "vue": "^3.3.4",
-  "vue-router": "^4.2.5",
-  "axios": "^1.6.0",
-  "vite": "^5.0.0"
-}
-```
+**Características:**
+- Detecta estado de autenticación desde localStorage
+- Escucha evento `auth-change` para actualizarse
+- Muestra opciones diferentes según estado:
+  - No autenticado: Inicio, Registro, Login
+  - Autenticado: Inicio, Mis Reservas, Perfil, Cerrar Sesión
+- Indicador visual del usuario activo
 
 ## Manejo de Errores
 
 ### Backend
 
-```typescript
-// Errores controlados con mensajes específicos
-try {
-  const resultado = await WebServiceClient.crearReserva(data);
-  res.json({ success: true, data: resultado });
-} catch (error) {
-  console.error('[ERROR] Error al crear reserva:', error);
-  res.status(500).json({ 
-    success: false, 
-    message: error.message || 'Error del servidor' 
-  });
-}
-```
+- Validaciones de campos obligatorios
+- Manejo de errores de BD con try-catch
+- Mensajes descriptivos en respuestas de error
+- Logs de errores en consola con contexto
 
 ### Frontend
 
-```javascript
-// Manejo con try-catch y alertas al usuario
-try {
-  const response = await bookingAPI.book(reservationData);
-  alert('¡Reserva confirmada!\n\nLocalizador: ' + response.data.localizador);
-  this.$router.push('/mis-reservas');
-} catch (error) {
-  const errorMsg = error.response?.data?.message || error.message;
-  alert('Error al procesar la reserva: ' + errorMsg);
-  console.error('Detalles del error:', error.response?.data);
-}
-```
-
-## Logs y Debugging
-
-### Niveles de Log (Backend)
-
-```
-[BACKEND]    - Logs generales del backend
-[DEBUG]      - Información de depuración detallada
-[WebService] - Comunicación con WebService
-[Channel]    - Comunicación con Channel
-[AUTH]       - Autenticación y autorización
-[ERROR]      - Errores del sistema
-```
-
-### Ejemplo de Logs
-
-```
-[BACKEND] Servidor iniciado en puerto 8010
-[BACKEND] Conexión a la base de datos establecida
-[DEBUG] WebService respondió: 8 habitaciones
-[DEBUG] Channel respondió: 7 habitaciones
-[DEBUG] Total habitaciones: 15
-[AUTH] Usuario autenticado: juan@example.com
-[WebService] Reserva creada: WS-2026-00001
-[Channel] Reserva creada: uuid-localizador
-```
+- Interceptores de Axios para errores HTTP
+- Redirección a login si token inválido (401)
+- Mensajes de error amigables con `alert()`
+- Validación de campos antes de envío
 
 ## Seguridad
 
-### Medidas Implementadas
+### Autenticación
+- Contraseñas hasheadas con bcrypt (10 rounds)
+- Tokens JWT con expiración de 24 horas
+- Validación de token en cada petición protegida
+- Middleware de autenticación en rutas privadas
 
-1. **Contraseñas Hasheadas**: bcrypt con 10 salt rounds
-2. **JWT Tokens**: Firmados con secret key, sin expiración (considerar añadir)
-3. **CORS Configurado**: Headers permitidos para todos los orígenes (desarrollo)
-4. **SQL Injection Protection**: Prepared statements con mysql2
-5. **Validación de Entrada**: Sanitización básica de datos
-6. **Autenticación en Rutas**: Middleware `authenticateToken` en rutas protegidas
+### Base de Datos
+- Queries parametrizadas (prevención SQL injection)
+- Validación de tipos de datos
+- Foreign keys para integridad referencial
 
-### Recomendaciones de Seguridad para Producción
+### Frontend
+- Validación de inputs
+- Sanitización de datos antes de envío
+- Tokens almacenados solo en localStorage (no cookies)
+- Redirección automática a login en sesión expirada
 
-- [ ] Añadir expiración a tokens JWT (ej: 24h)
-- [ ] Implementar refresh tokens
-- [ ] Configurar CORS solo para dominios específicos
-- [ ] Añadir rate limiting
-- [ ] Implementar HTTPS obligatorio
-- [ ] Validación más estricta de entrada
-- [ ] Logs de auditoría
+## Exclusiones y Archivos Ignorados
 
-## Configuración de Servicios Externos
+El archivo `.gitignore` debe incluir:
 
-### WebService
+```
+# Dependencias
+node_modules/
+backend/node_modules/
+frontend/node_modules/
 
-El WebService debe estar ejecutándose en `http://localhost:3000`. Endpoints requeridos:
+# Build
+backend/dist/
+frontend/dist/
 
-- `GET /api/disponibilidad` - Búsqueda de habitaciones
-- `GET /api/regimenes/hotel/:idHotel` - Obtener regímenes de un hotel
-- `POST /api/reservas` - Crear nueva reserva
+# Environment
+.env
+backend/.env
 
-### Channel
+# Logs
+*.log
+npm-debug.log*
 
-El Channel debe estar ejecutándose en `http://localhost:8001`. Endpoints requeridos:
+# OS
+.DS_Store
+Thumbs.db
 
-- `GET /api/disponibilidad` - Búsqueda de habitaciones
-- `POST /api/reservas` - Crear nueva reserva
-
-## Troubleshooting
-
-### Error: "Cannot connect to database"
-**Causa**: Credenciales MySQL incorrectas o servidor no corriendo.
-**Solución**: 
-1. Verificar que MySQL esté ejecutándose
-2. Comprobar credenciales en `backend/src/config/database.ts`
-3. Verificar que la base de datos `principal_db` existe
-
-### Error: "WebService no responde"
-**Causa**: WebService no está ejecutándose o puerto incorrecto.
-**Solución**:
-1. Verificar que WebService esté en `http://localhost:3000`
-2. Comprobar logs del WebService
-3. Ejecutar `npm run dev` en la carpeta WebService
-
-### Error: "Channel no responde"
-**Causa**: Channel no está ejecutándose o puerto incorrecto.
-**Solución**:
-1. Verificar que Channel esté en `http://localhost:8001`
-2. Ejecutar Python FastAPI: `cd Channel && uvicorn src.main:app --reload`
-
-### Error: "Token inválido" o "No autorizado"
-**Causa**: Token JWT expirado o corrupto.
-**Solución**:
-1. Cerrar sesión en el frontend
-2. Volver a iniciar sesión
-3. Verificar que `localStorage` contenga el token
-
-### Frontend no carga o muestra página en blanco
-**Causa**: Dependencias no instaladas o error de compilación.
-**Solución**:
-1. Ejecutar `npm install` en `frontend/`
-2. Verificar consola del navegador para errores
-3. Comprobar que Vite esté en puerto 5174
-
-### Modal de régimen se queda cargando
-**Causa**: WebService no responde o CORS bloqueado.
-**Solución**:
-1. Verificar que WebService tenga CORS habilitado
-2. Comprobar en Network tab del navegador la petición
-3. Verificar endpoint `/api/regimenes/hotel/:idHotel`
-
-## Scripts Disponibles
-
-```json
-{
-  "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
-  "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
-}
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 ```
 
-- **`npm run dev`**: Ejecuta backend y frontend simultáneamente
-- **`npm run install-all`**: Instala todas las dependencias del proyecto
+## Solución de Problemas Comunes
 
-## Estructura de Base de Datos
+### Error de CORS
 
-### Usuarios
+Si aparecen errores de CORS al conectar con WebService o Channel:
+- Verificar que ambos servicios tengan configurados los headers CORS
+- WebService: Comprobar middleware CORS en `app.ts`
+- Channel: Verificar CORS en configuración de FastAPI
 
-| Campo             | Tipo         | Descripción                    |
-|-------------------|--------------|--------------------------------|
-| id                | INT (PK)     | ID único del usuario           |
-| nombre            | VARCHAR(100) | Nombre del usuario             |
-| apellidos         | VARCHAR(100) | Apellidos del usuario          |
-| email             | VARCHAR(255) | Email único (login)            |
-| password          | VARCHAR(255) | Contraseña hasheada (bcrypt)   |
-| dni               | VARCHAR(20)  | DNI/NIF (opcional)             |
-| fecha_nacimiento  | DATE         | Fecha de nacimiento (opcional) |
-| created_at        | TIMESTAMP    | Fecha de registro              |
+### Token inválido
 
-### Reservas
+Si el token expira constantemente:
+- Verificar sincronización de hora del sistema
+- Comprobar que JWT_SECRET coincida en todas las instancias
+- Revisar tiempo de expiración en AuthController
 
-| Campo            | Tipo           | Descripción                         |
-|------------------|----------------|-------------------------------------|
-| id               | INT (PK)       | ID único de la reserva              |
-| usuario_id       | INT (FK)       | Referencia al usuario               |
-| localizador      | VARCHAR(50)    | Código de reserva único             |
-| origen           | ENUM           | 'WebService' o 'Channel'            |
-| hotel_nombre     | VARCHAR(255)   | Nombre del hotel                    |
-| habitacion_tipo  | VARCHAR(255)   | Tipo de habitación                  |
-| fecha_entrada    | DATE           | Fecha de check-in                   |
-| fecha_salida     | DATE           | Fecha de check-out                  |
-| num_huespedes    | INT            | Número de huéspedes                 |
-| precio_total     | DECIMAL(10,2)  | Precio total de la reserva          |
-| created_at       | TIMESTAMP      | Fecha de creación de la reserva     |
+### Reservas no se guardan
+
+- Verificar conexión a BD (principal_db)
+- Comprobar que WebService/Channel estén activos
+- Revisar logs del backend para errores específicos
+- Validar que el usuario esté autenticado
+
+### Modal de regímenes no carga
+
+- Verificar que WebService esté activo en puerto 3000
+- Comprobar que `idHotel` se pase correctamente como prop
+- Revisar logs del navegador para errores de red
+- Validar endpoint `/api/regimenes/hotel/{idHotel}` en WebService
+
+## Roadmap y Mejoras Futuras
+
+- Implementar filtros avanzados (precio, categoría, servicios)
+- Sistema de cancelación de reservas
+- Pasarela de pago integrada
+- Notificaciones por email
+- Historial completo de reservas (activas/pasadas/canceladas)
+- Panel de administración
+- Soporte multiidioma
+- Modo oscuro
+- PWA (Progressive Web App)
+
+## Soporte y Contacto
+
+Para reportar bugs o sugerir mejoras, contactar con el equipo de desarrollo.
 
 ## Licencia
 
-Este proyecto es parte del sistema SectorTuristic desarrollado en la Universitat de les Illes Balears (UIB).
-
-## Contacto y Soporte
-
-Para dudas, consultas o reportar problemas sobre el sistema Principal:
-- Revisar esta documentación
-- Consultar logs del backend y frontend
-- Verificar que todos los servicios estén ejecutándose
-
----
-
-**Última actualización**: Enero 2026  
-**Versión**: 1.0.0  
-**Stack**: Node.js + TypeScript + Express + Vue 3 + MySQL
+Proyecto académico - UIB 2026
