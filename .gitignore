@@ -1,19 +1,67 @@
 # Dependencias
-node_modules
+node_modules/
+package-lock.json
 
-# C�digo compilado
-dist
+# Código compilado
+dist/
+*.js.map
 
 # Variables de entorno
 .env
+.env.*
+!.env.example
 
-# Scripts de base de datos con credenciales
-BD/crear_bd.ps1
-
-# Base de datos SQLite
-Channel/channel.db
+# Base de datos
 *.db
+*.db-journal
+*.sqlite
+*.sqlite3
 
-# Python cache
+# Python
 **/__pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+venv/
+env/
+
+# Archivos temporales
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Scripts innecesarios
+*.bat
+*.ps1
+*.sh
+
+# Archivos de documentación antigua
+log.md
+PROYECTO_COMPLETADO.md
+INSTALACION.md
+LANZAR.md
+
+# Carpetas completas innecesarias
+complet/
+Principal/
+54870695DventaOnline/
+
+# Archivos zip
+*.zip
+
+# PDFs
+*.pdf
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json

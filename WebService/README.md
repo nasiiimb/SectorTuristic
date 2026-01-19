@@ -1,10 +1,10 @@
-# 🏨 WebService - Sistema de Gestión Hotelera (PMS)
+#  WebService - Sistema de Gestión Hotelera (PMS)
 
-## 📋 Descripción
+##  Descripción
 
 Este WebService es una API REST desarrollada para gestionar un sistema de Property Management System (PMS) para el sector turístico. Permite administrar hoteles, reservas, clientes, contratos y toda la operativa hotelera.
 
-## 🏗️ Arquitectura del Proyecto
+##  Arquitectura del Proyecto
 
 El proyecto está organizado siguiendo una arquitectura modular y escalable:
 
@@ -35,7 +35,7 @@ WebService/
 └── package.json
 ```
 
-## 🔧 Tecnologías Utilizadas
+##  Tecnologías Utilizadas
 
 - **Node.js**: Entorno de ejecución de JavaScript
 - **Express.js v5**: Framework web para crear la API REST
@@ -44,7 +44,7 @@ WebService/
 - **MySQL**: Sistema de gestión de base de datos relacional
 - **ts-node-dev**: Herramienta de desarrollo para ejecutar TypeScript con hot-reload
 
-## 📡 Funcionalidades Principales
+##  Funcionalidades Principales
 
 ### 1. Gestión de Hoteles
 - Listar todos los hoteles
@@ -75,7 +75,7 @@ WebService/
 - Servicios adicionales
 - Clientes
 
-## 🛡️ Manejo de Errores
+##  Manejo de Errores
 
 El sistema cuenta con un middleware centralizado de manejo de errores (`errorHandler.ts`) que incluye:
 
@@ -100,7 +100,7 @@ router.get('/', asyncHandler(async (req, res) => {
 - `P2025`: Registro no encontrado (404 Not Found)
 - `P2003`: Violación de clave foránea (400 Bad Request)
 
-## 🔄 Características Especiales
+##  Características Especiales
 
 ### **Actualización Inteligente de Clientes**
 Al crear una reserva, si el cliente ya existe (por DNI), se actualizan sus datos automáticamente en lugar de crear un duplicado:
@@ -116,7 +116,7 @@ El endpoint de disponibilidad verifica:
 - Habitaciones sin contratos activos
 - Habitaciones disponibles por tipo y hotel
 
-## 📊 Endpoints Principales
+##  Endpoints Principales
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
@@ -132,14 +132,14 @@ El endpoint de disponibilidad verifica:
 | GET | `/api/regimenes` | Regímenes alimentarios |
 | GET | `/api/servicios` | Servicios adicionales |
 
-## 🎯 Flujo de Trabajo Típico
+##  Flujo de Trabajo Típico
 
 1. **Consultar disponibilidad** → `GET /api/disponibilidad`
 2. **Crear reserva** → `POST /api/reservas`
 3. **Hacer check-in** → `POST /api/contratos`
 4. **Hacer check-out** → `PUT /api/contratos/:id/checkout`
 
-## 📝 Notas Importantes
+##  Notas Importantes
 
 - Todos los endpoints usan el middleware `asyncHandler` para manejo automático de errores
 - Las fechas deben estar en formato ISO (YYYY-MM-DD)
@@ -147,8 +147,4 @@ El endpoint de disponibilidad verifica:
 - El sistema valida automáticamente claves foráneas y datos únicos
 - Los errores retornan JSON estructurado con código HTTP apropiado
 
-## 🔗 Ver También
 
-- `COMO_EJECUTAR.md` - Instrucciones para ejecutar el servidor
-- `PRISMA.md` - Guía de uso de Prisma ORM
-- `POSTMAN_DEMO.md` - Ejemplos de llamadas a la API
