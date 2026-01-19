@@ -436,6 +436,29 @@ router.post('/', async (req, res) => {
       huespedes, // Array de objetos con datos de huéspedes
     } = req.body;
 
+    // Detectar automáticamente el canal si no se especifica
+    let canal = canalReserva;
+    if (!canal) {
+      const userAgent = req.headers['user-agent'] || '';
+      const referer = req.headers['referer'] || '';
+      const xSource = req.headers['x-source'] || '';
+      
+      // Detectar por header personalizado primero
+      if (xSource) {
+        canal = xSource;
+      }
+      // Detectar por referer o user-agent
+      else if (userAgent.includes('python') || userAgent.includes('requests')) {
+        canal = 'PMS';
+      } else if (referer.includes('localhost:5174') || referer.includes('gds')) {
+        canal = 'GDS';
+      } else if (referer || userAgent.includes('Mozilla')) {
+        canal = 'Pagina Web';
+      } else {
+        canal = 'N/A';
+      }
+    }
+
     // Validación de parámetros requeridos
     if (!fechaEntrada || !fechaSalida || !tipo || !clientePaga || !hotel || !tipoHabitacion || !regimen) {
       return res.status(400).json({
@@ -664,7 +687,7 @@ router.post('/', async (req, res) => {
       data: {
         fechaEntrada: entrada,
         fechaSalida: salida,
-        canalReserva: canalReserva || null,
+        canalReserva: canal,
         tipo,
         idCliente_paga: cliente.idCliente,
         idPrecioRegimen: precioRegimen.idPrecioRegimen,

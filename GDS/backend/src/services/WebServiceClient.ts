@@ -110,6 +110,10 @@ export class WebServiceClient {
         regimen: data.regimen,
         clientePaga: data.clientePaga,
         huespedes: data.huespedes || []
+      }, {
+        headers: {
+          'x-source': 'GDS'
+        }
       });
 
       const reserva = response.data.reserva;

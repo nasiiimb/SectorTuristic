@@ -355,7 +355,7 @@ class MainWindow:
             
             query_string = "&".join(params)
             
-            print(f"[BUSCAR] Buscando reservas ACTIVAS en hotel {self.hotel_seleccionado.nombre}: {query_string}")
+            print(f"🔍 Buscando reservas ACTIVAS en hotel {self.hotel_seleccionado.nombre}: {query_string}")
             
             # Llamar al endpoint de búsqueda de reservas ACTIVAS
             response = self.api_client.get(f"reservas/buscar/cliente/activas?{query_string}")
@@ -380,7 +380,7 @@ class MainWindow:
                 label.pack(pady=20)
                 return
             
-            print(f"[INFO] Se encontraron {len(reservas_data)} reservas")
+            print(f"✅ Se encontraron {len(reservas_data)} reservas")
             
             # Convertir a objetos Reserva y mostrar
             from src.domain.reserva import Reserva
@@ -397,7 +397,7 @@ class MainWindow:
             self._mostrar_lista_reservas(reservas)
             
         except Exception as e:
-            print(f"[ERROR] Error al buscar reservas: {e}")
+            print(f"❌ Error al buscar reservas: {e}")
             import traceback
             traceback.print_exc()
             messagebox.showerror("Error", f"Error al buscar reservas: {str(e)}")
@@ -417,8 +417,8 @@ class MainWindow:
             
             reservas_data = response.data
             
-            print(f"[INFO] Listando reservas ACTIVAS del hotel: {self.hotel_seleccionado.nombre}")
-            print(f"[INFO] Se encontraron {len(reservas_data)} reservas activas")
+            print(f"📋 Listando reservas ACTIVAS del hotel: {self.hotel_seleccionado.nombre}")
+            print(f"✅ Se encontraron {len(reservas_data)} reservas activas")
             
             # Convertir a objetos Reserva
             from src.domain.reserva import Reserva
@@ -455,12 +455,12 @@ class MainWindow:
         header_frame.pack(fill="x", pady=(0, 10), padx=10)
         
         # Configurar grid para que se expanda
-        header_frame.grid_columnconfigure(0, weight=2)  # Cliente
-        header_frame.grid_columnconfigure(1, weight=2)  # Hotel
-        header_frame.grid_columnconfigure(2, weight=1)  # Entrada
-        header_frame.grid_columnconfigure(3, weight=1)  # Salida
-        header_frame.grid_columnconfigure(4, weight=1)  # Tipo
-        header_frame.grid_columnconfigure(5, weight=1)  # Acción
+        header_frame.grid_columnconfigure(0, weight=3, minsize=200)  # Cliente
+        header_frame.grid_columnconfigure(1, weight=3, minsize=200)  # Hotel
+        header_frame.grid_columnconfigure(2, weight=2, minsize=120)  # Entrada
+        header_frame.grid_columnconfigure(3, weight=2, minsize=120)  # Salida
+        header_frame.grid_columnconfigure(4, weight=2, minsize=100)  # Tipo
+        header_frame.grid_columnconfigure(5, weight=2, minsize=120)  # Accion
         
         headers = ["Cliente", "Hotel", "Entrada", "Salida", "Tipo", "Acción"]
         for col, header in enumerate(headers):
@@ -470,7 +470,7 @@ class MainWindow:
                 font=ctk.CTkFont(size=14, weight="bold"),
                 anchor="center"
             )
-            label.grid(row=0, column=col, padx=8, pady=15, sticky="ew")
+            label.grid(row=0, column=col, padx=5, pady=15, sticky="ew")
         
         # Datos con filas alternadas
         for idx, reserva in enumerate(reservas):
@@ -481,12 +481,12 @@ class MainWindow:
             row_frame.pack(fill="x", pady=3, padx=10)
             
             # Configurar grid igual que header
-            row_frame.grid_columnconfigure(0, weight=2)
-            row_frame.grid_columnconfigure(1, weight=2)
-            row_frame.grid_columnconfigure(2, weight=1)
-            row_frame.grid_columnconfigure(3, weight=1)
-            row_frame.grid_columnconfigure(4, weight=1)
-            row_frame.grid_columnconfigure(5, weight=1)
+            row_frame.grid_columnconfigure(0, weight=3, minsize=200)
+            row_frame.grid_columnconfigure(1, weight=3, minsize=200)
+            row_frame.grid_columnconfigure(2, weight=2, minsize=120)
+            row_frame.grid_columnconfigure(3, weight=2, minsize=120)
+            row_frame.grid_columnconfigure(4, weight=2, minsize=100)
+            row_frame.grid_columnconfigure(5, weight=2, minsize=120)
             
             # Cliente (nombre completo)
             cliente_text = "N/A"
@@ -502,7 +502,7 @@ class MainWindow:
                 text=cliente_text,
                 font=ctk.CTkFont(size=13),
                 anchor="w"
-            ).grid(row=0, column=0, padx=12, pady=12, sticky="ew")
+            ).grid(row=0, column=0, padx=10, pady=12, sticky="ew")
             
             # Hotel (nombre)
             hotel_text = "N/A"
@@ -519,7 +519,7 @@ class MainWindow:
                 text=hotel_text,
                 font=ctk.CTkFont(size=13),
                 anchor="w"
-            ).grid(row=0, column=1, padx=12, pady=12, sticky="ew")
+            ).grid(row=0, column=1, padx=10, pady=12, sticky="ew")
             
             # Fechas
             ctk.CTkLabel(
@@ -527,14 +527,14 @@ class MainWindow:
                 text=str(reserva.fecha_entrada),
                 font=ctk.CTkFont(size=13),
                 anchor="center"
-            ).grid(row=0, column=2, padx=8, pady=12, sticky="ew")
+            ).grid(row=0, column=2, padx=5, pady=12, sticky="ew")
             
             ctk.CTkLabel(
                 row_frame,
                 text=str(reserva.fecha_salida),
                 font=ctk.CTkFont(size=13),
                 anchor="center"
-            ).grid(row=0, column=3, padx=8, pady=12, sticky="ew")
+            ).grid(row=0, column=3, padx=5, pady=12, sticky="ew")
             
             # Tipo de reserva
             tipo_text = reserva.tipo.value if hasattr(reserva.tipo, 'value') else str(reserva.tipo)
@@ -543,17 +543,18 @@ class MainWindow:
                 text=tipo_text,
                 font=ctk.CTkFont(size=13),
                 anchor="center"
-            ).grid(row=0, column=4, padx=8, pady=12, sticky="ew")
+            ).grid(row=0, column=4, padx=5, pady=12, sticky="ew")
             
-            # Botón
+            # Boton
             btn_ver = ctk.CTkButton(
                 row_frame,
-                text="👁️ Ver",
+                text="Ver",
                 command=lambda r=reserva: self._mostrar_detalle_reserva(r),
                 fg_color=("#1F618D", "#154360"),
                 hover_color=("#2E86C1", "#1A5490"),
                 font=ctk.CTkFont(size=13, weight="bold"),
-                height=38
+                height=38,
+                width=100
             )
             btn_ver.grid(row=0, column=5, padx=10, pady=10, sticky="ew")
     
@@ -574,7 +575,7 @@ class MainWindow:
                 reserva._precio_regimen_data = response.data.get('precioRegimen')
                 reserva._raw_data = response.data  # Guardar datos completos incluyendo pernoctaciones
         except Exception as e:
-            print(f"[WARNING] No se pudieron obtener datos completos de la reserva: {e}")
+            print(f"⚠️ No se pudieron obtener datos completos de la reserva: {e}")
             import traceback
             traceback.print_exc()
         

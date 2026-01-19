@@ -28,14 +28,16 @@ function apiRequest($endpoint, $method = 'GET', $data = null) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json',
-            'Content-Length: ' . strlen(json_encode($data))
+            'Content-Length: ' . strlen(json_encode($data)),
+            'x-source: Pagina Web'
         ]);
     } elseif ($method === 'PUT') {
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json',
-            'Content-Length: ' . strlen(json_encode($data))
+            'Content-Length: ' . strlen(json_encode($data)),
+            'x-source: Pagina Web'
         ]);
     } elseif ($method === 'DELETE') {
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');

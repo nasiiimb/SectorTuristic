@@ -100,7 +100,8 @@ class APIClient:
         """
         try:
             url = self._build_url(endpoint)
-            response = requests.post(url, json=data, timeout=self._timeout)
+            headers = {'x-source': 'PMS'}
+            response = requests.post(url, json=data, headers=headers, timeout=self._timeout)
             return self._handle_response(response)
         except requests.exceptions.ConnectionError:
             return APIResponse(
