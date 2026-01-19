@@ -740,10 +740,10 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       message: 'Reserva creada exitosamente',
-      localizador: `WS-${nuevaReserva.idReserva}`, // ⬅️ Agregar localizador explícito
+      localizador: `WS-${nuevaReserva.idReserva}`,
       reserva: {
         ...nuevaReserva,
-        localizador: `WS-${nuevaReserva.idReserva}` // ⬅️ También en el objeto reserva
+        localizador: `WS-${nuevaReserva.idReserva}`
       },
       precioDetalle: {
         precioHabitacionPorNoche: precioHabitacion,

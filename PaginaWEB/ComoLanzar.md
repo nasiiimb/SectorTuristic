@@ -138,23 +138,23 @@ Endpoints principales:
 
 ```bash
 cd PaginaWEB
-php -S localhost:8000
+php -S localhost:8020
 ```
 
 Esperarás ver:
 ```
-[Sat Nov 30 09:00:00 2025] PHP 8.5.0 Development Server (http://localhost:8000) started
+[Sat Nov 30 09:00:00 2025] PHP 8.5.0 Development Server (http://localhost:8020) started
 ```
 
 La página web estará disponible en:
-- **URL**: http://localhost:8000
+- **URL**: http://localhost:8020
 
 ---
 
 ## Paso 4: Acceder a la Aplicación
 
 ### 1. Página de Inicio
-- **URL**: http://localhost:8000
+- **URL**: http://localhost:8020
 
 ### 2. Flujo de Reserva
 1. Selecciona país, ciudad, hotel, fechas
@@ -206,13 +206,13 @@ cd WebService
 npm run db:setup
 ```
 
-### Error: "Puerto 8000 ya en uso"
+### Error: "Puerto 8020 ya en uso"
 
 **Solución:**
 ```bash
 # Usar otro puerto
 cd PaginaWEB
-php -S localhost:8001
+php -S localhost:8021
 ```
 
 ### Error: "Puerto 3000 ya en uso"

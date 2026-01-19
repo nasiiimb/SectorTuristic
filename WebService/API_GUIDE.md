@@ -1,8 +1,8 @@
-# 📡 API Guide - WebService PMS
+# API Guide - WebService PMS
 
 Guía completa de todos los endpoints disponibles en la API del Sistema de Gestión Hotelera.
 
-## 🌐 URL Base
+## URL Base
 
 ```
 http://localhost:3000/api
@@ -10,22 +10,22 @@ http://localhost:3000/api
 
 ---
 
-## 📑 Tabla de Contenidos
+## Tabla de Contenidos
 
-1. [Hoteles](#-hoteles)
-2. [Ciudades](#-ciudades)
-3. [Tipos de Habitación](#-tipos-de-habitación)
-4. [Regímenes](#-regímenes)
-5. [Servicios](#-servicios)
-6. [Clientes](#-clientes)
-7. [Reservas](#-reservas)
-8. [Disponibilidad](#-disponibilidad)
-9. [Contratos (Check-in/Check-out)](#-contratos-check-incheck-out)
-10. [Pernoctaciones](#-pernoctaciones)
+1. [Hoteles](#hoteles)
+2. [Ciudades](#ciudades)
+3. [Tipos de Habitación](#tipos-de-habitación)
+4. [Regímenes](#regímenes)
+5. [Servicios](#servicios)
+6. [Clientes](#clientes)
+7. [Reservas](#reservas)
+8. [Disponibilidad](#disponibilidad)
+9. [Contratos (Check-in/Check-out)](#contratos-check-incheck-out)
+10. [Pernoctaciones](#pernoctaciones)
 
 ---
 
-## 🏨 Hoteles
+## Hoteles
 
 ### Listar todos los hoteles
 
@@ -1203,3 +1203,4 @@ Todos los errores retornan un JSON con el siguiente formato:
 - `COMO_EJECUTAR.md` - Cómo iniciar el servidor
 - `PRISMA.md` - Documentación de Prisma ORM
 - `POSTMAN_DEMO.md` - Ejemplos para testing con Postman
+
