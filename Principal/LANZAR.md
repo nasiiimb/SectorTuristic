@@ -19,6 +19,51 @@ npm run dev
 
 ```powershell
 cd Channel
+python -m uvicorn src.main:app --reload --port 8001
+```
+
+**Verificar**: Accede a http://localhost:8001/docs - veras la documentacion Swagger de FastAPI.
+
+---
+
+### 3. Principal (Backend + Frontend)
+
+**AHORA ES MUY FACIL - UN SOLO COMANDO:**
+
+```powershell
+cd Principal
+npm run dev
+```
+
+Este comando ejecuta automaticamente:
+- Backend en http://localhost:8010
+- Frontend en http://localhost:5174
+
+**Verificar**: 
+- Backend: http://localhost:8010/health - deberias ver `{"status":"ok"}`
+- Frontend: http://localhost:5174 - veras la pagina de inicio del Booking Engine
+
+---
+
+## Script de Lanzamiento Rapido
+
+Puedes abrir **3 terminales de PowerShell** y ejecutar cada comando en una:
+
+**Terminal 1 - WebService:**
+
+```powershell
+cd WebService
+npm run dev
+```
+
+**Verificar**: Accede a http://localhost:3000 - deberias ver un mensaje o documentacion de la API.
+
+---
+
+### 2. Channel Manager (Puerto 8001)
+
+```powershell
+cd Channel
 .\venv\Scripts\Activate.ps1  # Activar entorno virtual
 python -m src.main
 ```
@@ -57,7 +102,7 @@ cd C:\UIB\Solucions Turistiques\practica\SectorTuristic\WebService; npm run dev
 
 **Terminal 2 - Channel:**
 ```powershell
-cd C:\UIB\Solucions Turistiques\practica\SectorTuristic\Channel; .\venv\Scripts\Activate.ps1; python -m src.main
+cd C:\UIB\Solucions Turistiques\practica\SectorTuristic\Channel; python -m uvicorn src.main:app --reload --port 8001
 ```
 
 **Terminal 3 - Principal (Backend + Frontend):**

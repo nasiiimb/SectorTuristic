@@ -249,3 +249,75 @@ def eliminar_disponibilidad(
     db.delete(db_disp)
     db.commit()
     return {"message": "Disponibilidad eliminada"}
+
+
+@router.get("/buscar")
+def buscar_disponibilidad_publica(
+    fecha_inicio: date = Query(..., description="Fecha de entrada"),
+    fecha_fin: date = Query(..., description="Fecha de salida"),
+    num_huespedes: int = Query(..., description="Número de huéspedes"),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint público para buscar disponibilidad de habitaciones
+    No requiere autenticación - usado por sistemas externos como Principal
+    """
+    from sqlalchemy import func
+    
+    # Buscar tipos de habitación que tengan capacidad suficiente
+    tipos_habitacion = db.query(TipoHabitacion).filter(
+        TipoHabitacion.capacidad_max >= num_huespedes
+    ).all()
+    
+    resultados = []
+    
+    for tipo in tipos_habitacion:
+        # Obtener el hotel
+        hotel = db.query(Hotel).filter(Hotel.id == tipo.hotel_id).first()
+        if not hotel:
+            continue
+        
+        # Verificar disponibilidad para todas las fechas del rango
+        fecha_actual = fecha_inicio
+        disponibilidad_minima = None
+        precio_total_acumulado = 0
+        tiene_disponibilidad_completa = True
+        
+        while fecha_actual < fecha_fin:
+            disp = db.query(Disponibilidad).filter(
+                Disponibilidad.tipo_habitacion_id == tipo.id,
+                Disponibilidad.fecha == fecha_actual
+            ).first()
+            
+            if disp and disp.cantidad_disponible > 0:
+                if disponibilidad_minima is None:
+                    disponibilidad_minima = disp.cantidad_disponible
+                else:
+                    disponibilidad_minima = min(disponibilidad_minima, disp.cantidad_disponible)
+                precio_total_acumulado += (disp.precio or 100)  # Precio por defecto 100 si no está definido
+            else:
+                # No hay disponibilidad para esta fecha
+                tiene_disponibilidad_completa = False
+                break
+            
+            fecha_actual += timedelta(days=1)
+        
+        # Solo incluir si hay disponibilidad para todas las fechas
+        if tiene_disponibilidad_completa and disponibilidad_minima and disponibilidad_minima > 0:
+            # Foto por defecto si no tiene
+            foto_url = "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800"
+            
+            resultados.append({
+                "tipo_habitacion_id": tipo.id,
+                "tipo_nombre": tipo.nombre,
+                "hotel_id": hotel.id,
+                "hotel_nombre": hotel.nombre,
+                "descripcion": tipo.descripcion or f"Habitación {tipo.nombre}",
+                "capacidad_max": tipo.capacidad_max,
+                "precio": precio_total_acumulado,
+                "cantidad_disponible": int(disponibilidad_minima),
+                "foto_url": foto_url,
+                "servicios": tipo.servicios or ""
+            })
+    
+    return resultados

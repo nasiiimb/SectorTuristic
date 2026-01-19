@@ -715,16 +715,12 @@ router.post('/', async (req, res) => {
 
     const precioTotal = (precioHabitacion * numeroNoches) + (precioRegimenPorNoche * numeroNoches) - descuentoTotal;
 
-    // Generar localizador más largo: WS-2026-00001
-    const year = new Date().getFullYear();
-    const localizador = `WS-${year}-${String(nuevaReserva.idReserva).padStart(5, '0')}`;
-
     res.status(201).json({
       message: 'Reserva creada exitosamente',
-      localizador: localizador,
+      localizador: `WS-${nuevaReserva.idReserva}`, // ⬅️ Agregar localizador explícito
       reserva: {
         ...nuevaReserva,
-        localizador: localizador
+        localizador: `WS-${nuevaReserva.idReserva}` // ⬅️ También en el objeto reserva
       },
       precioDetalle: {
         precioHabitacionPorNoche: precioHabitacion,

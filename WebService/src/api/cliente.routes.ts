@@ -64,7 +64,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 
 // Crear un nuevo cliente
 router.post('/', asyncHandler(async (req, res) => {
-  const { nombre, apellidos, correoElectronico, fechaDeNacimiento, DNI } = req.body;
+  const { nombre, apellidos, correoElectronico, fechaDeNacimiento, DNI, password } = req.body;
 
   const nuevoCliente = await prisma.cliente.create({
     data: {
@@ -73,6 +73,7 @@ router.post('/', asyncHandler(async (req, res) => {
       correoElectronico,
       fechaDeNacimiento: fechaDeNacimiento ? new Date(fechaDeNacimiento) : null,
       DNI,
+      password: password || 'default_password', // Password por defecto si no se proporciona
     },
   });
 

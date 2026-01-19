@@ -18,6 +18,20 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
+// Middleware CORS - DEBE ir ANTES de otros middlewares
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
 // Middleware para establecer charset UTF-8 en todas las respuestas
 app.use((req, res, next) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');

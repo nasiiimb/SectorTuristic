@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import init_db
-from .routes import auth_router, hoteles_router, habitaciones_router, disponibilidad_router
+from .routes import auth_router, hoteles_router, habitaciones_router, disponibilidad_router, reservas_router
 
 # Crear aplicación FastAPI
 app = FastAPI(
@@ -28,6 +28,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(hoteles_router, prefix="/api")
 app.include_router(habitaciones_router, prefix="/api")
 app.include_router(disponibilidad_router, prefix="/api")
+app.include_router(reservas_router, prefix="/api")
 
 
 @app.on_event("startup")

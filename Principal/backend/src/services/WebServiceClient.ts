@@ -110,8 +110,7 @@ export class WebServiceClient {
         tipoHabitacion: data.tipoHabitacion,
         regimen: data.regimen,
         clientePaga: data.clientePaga,
-        huespedes: data.huespedes || [],
-        canal: 'Principal' // Identificar que la reserva viene del Principal
+        huespedes: data.huespedes || []
       });
 
       const reserva = response.data.reserva;

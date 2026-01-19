@@ -191,6 +191,7 @@ class ReservaUpdate(BaseModel):
 
 class ReservaResponse(ReservaBase):
     id: int
+    localizador: Optional[str] = None  # ⬅️ Agregar localizador explícito
     estado: str
     reserva_pms_id: Optional[str] = None
     created_at: datetime
